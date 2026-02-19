@@ -3,7 +3,23 @@ services:
     name: bronx-site
     env: static
     buildCommand: echo "No build needed"
-    staticPublishPath: .
+    staticPublishPath: site
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=0, must-revalidate
+      - path: /avatar.png
+        name: Cache-Control
+        value: public, max-age=3600
+      - path: /fonts/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /style.css
+        name: Cache-Control
+        value: public, max-age=3600
+      - path: /script.js
+        name: Cache-Control
+        value: public, max-age=3600
     routes:
       - type: rewrite
         source: /*

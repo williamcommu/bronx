@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bronx</title>
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" href="avatar.png">
+    <link rel="apple-touch-icon" href="avatar.png">
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="bronx - a discord bot with economy, gambling, fishing, trading, and utility commands. fast, reliable, built with c++.">
+    <meta name="keywords" content="discord bot, bronx, economy bot, gambling bot, fishing bot, discord utilities, c++ bot">
+    <meta name="author" content="bronx">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="bronx - discord bot">
+    <meta property="og:description" content="a discord bot with economy, gambling, fishing, trading, and utility commands. fast, reliable, built with c++.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://bronx.onrender.com">
+    <meta property="og:image" content="https://bronx.onrender.com/avatar.png">
+    <meta property="og:site_name" content="bronx">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="bronx - discord bot">
+    <meta name="twitter:description" content="a discord bot with economy, gambling, fishing, trading, and utility commands.">
+    <meta name="twitter:image" content="https://bronx.onrender.com/avatar.png">
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#b4a7d6">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="logo">bronx</h1>
+                <p class="tagline">a discord bot</p>
+                <div class="cta-group">
+                    <a href="#" class="btn btn-primary" id="invite-btn">invite bronx</a>
+                    <a href="#features" class="btn btn-secondary">learn more</a>
+                </div>
+            </div>
+        </div>
+        <div class="scroll-indicator" id="scrollIndicator">
+            <i class="fas fa-chevron-down"></i>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <i class="fas fa-chevron-down feature-card-indicator"></i>
+                    <div class="feature-icon"><i class="fas fa-coins"></i></div>
+                    <h3 class="feature-title">economy</h3>
+                    <p class="feature-desc">balance, banking, daily rewards, work commands, transfers. the basics.</p>
+                </div>
+
+                <div class="feature-card">
+                    <i class="fas fa-chevron-down feature-card-indicator"></i>
+                    <div class="feature-icon"><i class="fas fa-dice"></i></div>
+                    <h3 class="feature-title">gambling</h3>
+                    <p class="feature-desc">blackjack, slots, coinflip, dice, roulette, frogger. bet and play.</p>
+                </div>
+
+                <div class="feature-card">
+                    <i class="fas fa-chevron-down feature-card-indicator"></i>
+                    <div class="feature-icon"><i class="fas fa-fish"></i></div>
+                    <h3 class="feature-title">fishing</h3>
+                    <p class="feature-desc">catch fish, inventory management, selling. small fishing system.</p>
+                </div>
+
+                <div class="feature-card">
+                    <i class="fas fa-chevron-down feature-card-indicator"></i>
+                    <div class="feature-icon"><i class="fas fa-store"></i></div>
+                    <h3 class="feature-title">shop & trading</h3>
+                    <p class="feature-desc">buy items, trade with others, bazaar marketplace.</p>
+                </div>
+
+                <div class="feature-card">
+                    <i class="fas fa-chevron-down feature-card-indicator"></i>
+                    <div class="feature-icon"><i class="fas fa-trophy"></i></div>
+                    <h3 class="feature-title">leaderboards</h3>
+                    <p class="feature-desc">rankings for different stats.</p>
+                </div>
+
+                <div class="feature-card">
+                    <i class="fas fa-chevron-down feature-card-indicator"></i>
+                    <div class="feature-icon"><i class="fas fa-tools"></i></div>
+                    <h3 class="feature-title">utilities</h3>
+                    <p class="feature-desc">user info, server info, avatars, banners, polls, cleanup.</p>
+                </div>
+
+                <div class="feature-card">
+                    <i class="fas fa-chevron-down feature-card-indicator"></i>
+                    <div class="feature-icon"><i class="fas fa-heart"></i></div>
+                    <h3 class="feature-title">social</h3>
+                    <p class="feature-desc">hug, kiss, pat commands with gifs.</p>
+                </div>
+
+                <div class="feature-card">
+                    <i class="fas fa-chevron-down feature-card-indicator"></i>
+                    <div class="feature-icon"><i class="fas fa-bolt"></i></div>
+                    <h3 class="feature-title">performance</h3>
+                    <p class="feature-desc">written in c++. fast responses, stable.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Commands Section -->
+    <section class="commands" id="commands">
+        <div class="container">
+            <h2 class="section-title">commands</h2>
+            <div class="command-categories">
+                
+                <!-- Economy Commands -->
+                <div class="category">
+                    <div class="category-header">
+                        <span class="category-icon"><i class="fas fa-coins"></i></span>
+                        <h3 class="category-name">economy</h3>
+                    </div>
+                    <div class="command-list">
+                        <div class="command-item">
+                            <div class="command-name">balance</div>
+                            <div class="command-aliases">bal, money</div>
+                            <div class="command-desc">check wallet, bank & net worth</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">daily</div>
+                            <div class="command-desc">claim daily reward</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">work</div>
+                            <div class="command-desc">earn money by working</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">deposit</div>
+                            <div class="command-aliases">dep, d</div>
+                            <div class="command-desc">deposit to bank</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">withdraw</div>
+                            <div class="command-aliases">w, with</div>
+                            <div class="command-desc">withdraw from bank</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">pay</div>
+                            <div class="command-aliases">give</div>
+                            <div class="command-desc">transfer money to user</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gambling Commands -->
+                <div class="category">
+                    <div class="category-header">
+                        <span class="category-icon"><i class="fas fa-dice"></i></span>
+                        <h3 class="category-name">gambling</h3>
+                    </div>
+                    <div class="command-list">
+                        <div class="command-item">
+                            <div class="command-name">blackjack</div>
+                            <div class="command-aliases">bj, 21</div>
+                            <div class="command-desc">play blackjack vs dealer</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">slots</div>
+                            <div class="command-aliases">slot</div>
+                            <div class="command-desc">spin the slot machine</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">coinflip</div>
+                            <div class="command-aliases">cf, flip</div>
+                            <div class="command-desc">flip a coin and bet</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">dice</div>
+                            <div class="command-aliases">roll</div>
+                            <div class="command-desc">roll dice and bet</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">roulette</div>
+                            <div class="command-desc">play roulette</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">frogger</div>
+                            <div class="command-aliases">frog</div>
+                            <div class="command-desc">hop across logs</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fishing Commands -->
+                <div class="category">
+                    <div class="category-header">
+                        <span class="category-icon"><i class="fas fa-fish"></i></span>
+                        <h3 class="category-name">fishing</h3>
+                    </div>
+                    <div class="command-list">
+                        <div class="command-item">
+                            <div class="command-name">fish</div>
+                            <div class="command-desc">cast your line</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">finv</div>
+                            <div class="command-desc">view fishing inventory</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">sellfish</div>
+                            <div class="command-desc">sell fish for money</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">lockfish</div>
+                            <div class="command-desc">protect your favorites</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">finfo</div>
+                            <div class="command-desc">detailed fish information</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shop & Trading -->
+                <div class="category">
+                    <div class="category-header">
+                        <span class="category-icon"><i class="fas fa-store"></i></span>
+                        <h3 class="category-name">marketplace</h3>
+                    </div>
+                    <div class="command-list">
+                        <div class="command-item">
+                            <div class="command-name">shop</div>
+                            <div class="command-aliases">store</div>
+                            <div class="command-desc">browse available items</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">buy</div>
+                            <div class="command-aliases">purchase</div>
+                            <div class="command-desc">purchase shop items</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">trade</div>
+                            <div class="command-desc">trade with users</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">bazaar</div>
+                            <div class="command-desc">community marketplace</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Utility Commands -->
+                <div class="category">
+                    <div class="category-header">
+                        <span class="category-icon"><i class="fas fa-tools"></i></span>
+                        <h3 class="category-name">utility</h3>
+                    </div>
+                    <div class="command-list">
+                        <div class="command-item">
+                            <div class="command-name">help</div>
+                            <div class="command-aliases">h, cmds</div>
+                            <div class="command-desc">view all commands</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">ping</div>
+                            <div class="command-aliases">pong, ms</div>
+                            <div class="command-desc">check bot latency</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">userinfo</div>
+                            <div class="command-aliases">ui, whois</div>
+                            <div class="command-desc">view user details</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">serverinfo</div>
+                            <div class="command-aliases">si, guildinfo</div>
+                            <div class="command-desc">view server details</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">avatar</div>
+                            <div class="command-aliases">av, pfp</div>
+                            <div class="command-desc">display user avatar</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">banner</div>
+                            <div class="command-aliases">bn, banana</div>
+                            <div class="command-desc">display user banner</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">serveravatar</div>
+                            <div class="command-aliases">svav, servericon</div>
+                            <div class="command-desc">display server icon</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">serverbanner</div>
+                            <div class="command-aliases">svbn, svbanner</div>
+                            <div class="command-desc">display server banner</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">poll</div>
+                            <div class="command-desc">create interactive polls</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">cleanup</div>
+                            <div class="command-desc">bulk delete messages</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fun Commands -->
+                <div class="category">
+                    <div class="category-header">
+                        <span class="category-icon"><i class="fas fa-heart"></i></span>
+                        <h3 class="category-name">social</h3>
+                    </div>
+                    <div class="command-list">
+                        <div class="command-item">
+                            <div class="command-name">hug</div>
+                            <div class="command-desc">hug someone with gif</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">kiss</div>
+                            <div class="command-desc">kiss someone with gif</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">pat</div>
+                            <div class="command-desc">pat someone with gif</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leaderboards -->
+                <div class="category">
+                    <div class="category-header">
+                        <span class="category-icon"><i class="fas fa-trophy"></i></span>
+                        <h3 class="category-name">leaderboards</h3>
+                    </div>
+                    <div class="command-list">
+                        <div class="command-item">
+                            <div class="command-name">leaderboard</div>
+                            <div class="command-aliases">lb, top</div>
+                            <div class="command-desc">view rankings</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value">50+</div>
+                    <div class="stat-label">commands</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">7</div>
+                    <div class="stat-label">categories</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">c++17</div>
+                    <div class="stat-label">built with</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">24/7</div>
+                    <div class="stat-label">uptime</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-links">
+                    <a href="https://github.com/brainboxdotcc/DPP" class="footer-link" target="_blank">uses dpp</a>
+                    <a href="https://github.com/williamcommu/bronxsite" class="footer-link" target="_blank">source code</a>
+                    <a href="https://discord.gg/bronx" class="footer-link" target="_blank">support server</a>
+                    <a href="https://discord.com/oauth2/authorize?client_id=828380019406929962&permissions=7610260541407217&integration_type=0&scope=bot+applications.commands" class="footer-link" target="_blank">invite link</a>
+                </div>
+                <p>&copy; 2026 bronx</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Command Modal -->
+    <div id="commandModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalCommandName"></h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-aliases" id="modalAliases"></div>
+                <div class="modal-description" id="modalDescription"></div>
+                <div class="modal-section" id="modalUsageSection">
+                    <h3 class="modal-section-title">usage</h3>
+                    <div class="modal-usage" id="modalUsage"></div>
+                </div>
+                <div class="modal-section" id="modalExamplesSection">
+                    <h3 class="modal-section-title">examples</h3>
+                    <div class="modal-examples" id="modalExamples"></div>
+                </div>
+                <div class="modal-section" id="modalNoteSection">
+                    <div class="modal-note" id="modalNote"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

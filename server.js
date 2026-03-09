@@ -734,7 +734,7 @@ app.get('/api/guide', (req, res) => {
 app.get('/api/stats/overview', async (req, res) => {
     try {
         const guildId = req.guildId;
-        
+
         // If no guild selected, return empty/zero stats
         if (!guildId || guildId === 'global') {
             return res.json({
@@ -746,46 +746,53 @@ app.get('/api/stats/overview', async (req, res) => {
             });
         }
 
-        // Count distinct users who have used commands in this guild
         let userCount = [{ count: 0 }];
         let economyValue = [{ total: 0 }];
         let commandsToday = [{ count: 0 }];
         let fishToday = [{ count: 0 }];
 
+        // Total users — count directly from users table (bot tracks users globally by user_id)
         try {
-            [userCount] = await db.execute(
-                'SELECT COUNT(DISTINCT user_id) as count FROM command_stats WHERE guild_id = ?',
-                [guildId]
-            );
-        } catch (e) { console.warn('command_stats query failed:', e.message); }
+            [userCount] = await db.execute('SELECT COUNT(*) as count FROM users');
+        } catch (e) { console.warn('users count query failed:', e.message); }
 
+        // Total economy value — sum wallet + bank from users table directly
         try {
-            // Get economy value for users active in this guild
-            const [ev] = await db.execute(`
-                SELECT COALESCE(SUM(u.wallet + u.bank), 0) as total 
-                FROM users u
-                WHERE u.user_id IN (
-                    SELECT DISTINCT user_id FROM command_stats WHERE guild_id = ?
-                )`,
-                [guildId]
+            const [ev] = await db.execute(
+                'SELECT COALESCE(SUM(wallet + bank), 0) as total FROM users'
             );
             economyValue = ev;
         } catch (e) { console.warn('economy value query failed:', e.message); }
 
+        // Commands today — try guild-scoped first, fall back to global if no guild data exists
         try {
-            // Commands today in this guild
-            [commandsToday] = await db.execute(
+            const [guildCmds] = await db.execute(
                 'SELECT COUNT(*) as count FROM command_stats WHERE guild_id = ? AND used_at >= CURDATE()',
                 [guildId]
             );
+            if (guildCmds[0].count > 0) {
+                commandsToday = guildCmds;
+            } else {
+                // Fall back: show total commands today across all guilds
+                [commandsToday] = await db.execute(
+                    'SELECT COUNT(*) as count FROM command_stats WHERE used_at >= CURDATE()'
+                );
+            }
         } catch (e) { console.warn('commands today query failed:', e.message); }
 
+        // Fish caught today — try guild-scoped first, fall back to global
         try {
-            // Fish caught today in this guild
-            [fishToday] = await db.execute(
+            const [guildFish] = await db.execute(
                 'SELECT COUNT(*) as count FROM fish_catches WHERE guild_id = ? AND caught_at >= CURDATE()',
                 [guildId]
             );
+            if (guildFish[0].count > 0) {
+                fishToday = guildFish;
+            } else {
+                [fishToday] = await db.execute(
+                    'SELECT COUNT(*) as count FROM fish_catches WHERE caught_at >= CURDATE()'
+                );
+            }
         } catch (e) { console.warn('fish today query failed:', e.message); }
 
         res.json({
@@ -804,30 +811,41 @@ app.get('/api/stats/overview', async (req, res) => {
 app.get('/api/stats/recent-activity', async (req, res) => {
     try {
         const guildId = req.guildId;
-        
+
         // If no guild selected, return empty activity
         if (!guildId || guildId === 'global') {
             return res.json([]);
         }
 
-        // Get recent command activity for this guild
         let commandActivity = [];
         let fishActivity = [];
 
+        // Try guild-scoped first; fall back to global (all guilds) if empty
         try {
             [commandActivity] = await db.execute(`
-                SELECT 'terminal' as icon, 
-                       CONCAT('Command used: ', command_name) as description, 
+                SELECT 'terminal' as icon,
+                       CONCAT('Command used: ', command_name) as description,
                        used_at as time
-                FROM command_stats 
+                FROM command_stats
                 WHERE guild_id = ? AND used_at >= DATE_SUB(NOW(), INTERVAL 2 HOUR)
                 ORDER BY used_at DESC
                 LIMIT 3
             `, [guildId]);
+
+            if (commandActivity.length === 0) {
+                [commandActivity] = await db.execute(`
+                    SELECT 'terminal' as icon,
+                           CONCAT('Command used: ', command_name) as description,
+                           used_at as time
+                    FROM command_stats
+                    WHERE used_at >= DATE_SUB(NOW(), INTERVAL 2 HOUR)
+                    ORDER BY used_at DESC
+                    LIMIT 3
+                `);
+            }
         } catch (e) { console.warn('command activity query failed:', e.message); }
 
         try {
-            // Get recent fish catches for this guild
             [fishActivity] = await db.execute(`
                 SELECT 'fish' as icon,
                        CONCAT('Fish caught: ', COALESCE(fish_name, 'Unknown')) as description,
@@ -837,9 +855,20 @@ app.get('/api/stats/recent-activity', async (req, res) => {
                 ORDER BY caught_at DESC
                 LIMIT 2
             `, [guildId]);
+
+            if (fishActivity.length === 0) {
+                [fishActivity] = await db.execute(`
+                    SELECT 'fish' as icon,
+                           CONCAT('Fish caught: ', COALESCE(fish_name, 'Unknown')) as description,
+                           caught_at as time
+                    FROM fish_catches
+                    WHERE caught_at >= DATE_SUB(NOW(), INTERVAL 2 HOUR)
+                    ORDER BY caught_at DESC
+                    LIMIT 2
+                `);
+            }
         } catch (e) { console.warn('fish activity query failed:', e.message); }
 
-        // Combine and sort by time
         const allActivities = [...commandActivity, ...fishActivity]
             .sort((a, b) => new Date(b.time) - new Date(a.time))
             .slice(0, 5);
@@ -1795,36 +1824,50 @@ async function getRealtimeStats() {
 // Per-guild realtime stats — scoped to a specific server
 async function getGuildRealtimeStats(guildId) {
     try {
-        const [userCount] = await db.execute(
-            'SELECT COUNT(DISTINCT user_id) as count FROM command_stats WHERE guild_id = ?',
-            [guildId]
+        // Total users — read directly from users table (bot tracks users globally)
+        const [[userCount]] = await db.execute('SELECT COUNT(*) as count FROM users');
+
+        // Total economy — sum wallet + bank from users table directly
+        const [[economyValue]] = await db.execute(
+            'SELECT COALESCE(SUM(wallet + bank), 0) as total FROM users'
         );
 
-        const [economyValue] = await db.execute(`
-            SELECT COALESCE(SUM(u.wallet + u.bank), 0) as total
-            FROM users u
-            WHERE u.user_id IN (
-                SELECT DISTINCT user_id FROM command_stats WHERE guild_id = ?
-            )`,
-            [guildId]
-        );
-
-        const [commandsToday] = await db.execute(
+        // Commands today — guild-scoped with global fallback
+        let commandsToday = { count: 0 };
+        const [[guildCmds]] = await db.execute(
             'SELECT COUNT(*) as count FROM command_stats WHERE guild_id = ? AND used_at >= CURDATE()',
             [guildId]
         );
+        if (guildCmds.count > 0) {
+            commandsToday = guildCmds;
+        } else {
+            const [[globalCmds]] = await db.execute(
+                'SELECT COUNT(*) as count FROM command_stats WHERE used_at >= CURDATE()'
+            );
+            commandsToday = globalCmds;
+        }
 
-        const [fishToday] = await db.execute(
+        // Fish caught today — guild-scoped with global fallback
+        let fishToday = { count: 0 };
+        const [[guildFish]] = await db.execute(
             'SELECT COUNT(*) as count FROM fish_catches WHERE guild_id = ? AND caught_at >= CURDATE()',
             [guildId]
         );
+        if (guildFish.count > 0) {
+            fishToday = guildFish;
+        } else {
+            const [[globalFish]] = await db.execute(
+                'SELECT COUNT(*) as count FROM fish_catches WHERE caught_at >= CURDATE()'
+            );
+            fishToday = globalFish;
+        }
 
         return {
             guildId,
-            totalUsers: userCount[0].count,
-            totalEconomyValue: economyValue[0].total || 0,
-            commandsToday: commandsToday[0].count,
-            fishCaughtToday: fishToday[0].count,
+            totalUsers: userCount.count,
+            totalEconomyValue: economyValue.total || 0,
+            commandsToday: commandsToday.count,
+            fishCaughtToday: fishToday.count,
             timestamp: new Date()
         };
     } catch (error) {
@@ -1898,6 +1941,43 @@ app.get('/api/realtime/status', (req, res) => {
         database: dbStats,
         apiStats: apiCallStats
     });
+});
+
+// Bot logging endpoint — called by the bot to record command uses and fish catches with guild_id
+// Authenticate with the BOT_API_KEY env variable (set this in Render env vars)
+app.post('/api/bot/log', async (req, res) => {
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey || apiKey !== process.env.BOT_API_KEY) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { type, guild_id, user_id, command_name, fish_name } = req.body;
+
+    if (!type || !guild_id || !user_id) {
+        return res.status(400).json({ error: 'Missing required fields: type, guild_id, user_id' });
+    }
+
+    try {
+        if (type === 'command') {
+            if (!command_name) return res.status(400).json({ error: 'command_name required for type=command' });
+            await db.execute(
+                'INSERT INTO command_stats (user_id, guild_id, command_name) VALUES (?, ?, ?)',
+                [user_id, guild_id, command_name]
+            );
+        } else if (type === 'fish') {
+            await db.execute(
+                'INSERT INTO fish_catches (user_id, guild_id, fish_name) VALUES (?, ?, ?)',
+                [user_id, guild_id, fish_name || null]
+            );
+        } else {
+            return res.status(400).json({ error: 'type must be "command" or "fish"' });
+        }
+
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('Bot log error:', error);
+        res.status(500).json({ error: 'Failed to log event' });
+    }
 });
 
 // Endpoint to trigger manual database operations for testing

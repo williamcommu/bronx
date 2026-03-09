@@ -1383,7 +1383,12 @@ class BronxBotDashboard {
         if (!section) return;
         const statNumbers = section.querySelectorAll('.stat-number');
         const econVal = parseFloat(stats.totalEconomyValue) || 0;
-        if (statNumbers[0]) statNumbers[0].textContent = (stats.totalUsers ?? 0).toLocaleString();
+        // Card 0: member count from Discord API (this server) — only update if explicitly provided
+        if (statNumbers[0] && stats.memberCount !== undefined) {
+            statNumbers[0].textContent = stats.memberCount != null
+                ? Number(stats.memberCount).toLocaleString()
+                : '—';
+        }
         if (statNumbers[1]) statNumbers[1].textContent = '$' + formatNumber(econVal);
         if (statNumbers[2]) statNumbers[2].textContent = (stats.commandsToday ?? 0).toLocaleString();
         if (statNumbers[3]) statNumbers[3].textContent = (stats.fishCaughtToday ?? 0).toLocaleString();

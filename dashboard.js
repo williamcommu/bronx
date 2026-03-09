@@ -927,12 +927,16 @@ class BronxBotDashboard {
     // API Communication
     async apiCall(endpoint, options = {}) {
         try {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            if (this.currentGuild) {
+                headers['X-Guild-ID'] = this.currentGuild;
+            }
             const response = await fetch(`${this.apiEndpoint}${endpoint}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Guild-ID': this.currentGuild,
-                    ...options.headers
-                },
+                credentials: 'include',
+                headers,
                 ...options
             });
 

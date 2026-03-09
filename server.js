@@ -187,7 +187,10 @@ async function initDatabase() {
 
 // Middleware to add guild context
 app.use((req, res, next) => {
-    req.guildId = req.headers['x-guild-id'] || 'global';
+    const headerGuildId = req.headers['x-guild-id'];
+    req.guildId = (headerGuildId && headerGuildId !== 'null' && headerGuildId !== 'undefined') 
+        ? headerGuildId 
+        : 'global';
     next();
 });
 
@@ -987,7 +990,7 @@ app.get('/api/commands', async (req, res) => {
 app.get('/api/scope-rules', async (req, res) => {
     try {
         const guildId = req.guildId || req.query.guild_id;
-        if (!guildId || guildId === 'global') {
+        if (!guildId || guildId === 'global' || guildId === 'null') {
             return res.json([]);
         }
         const [rows] = await db.execute(

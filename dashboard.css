@@ -1046,10 +1046,114 @@ tbody tr:hover {
     line-height: 1.4;
 }
 
+.badge-allow { background: rgba(67, 181, 129, 0.15); color: #43b581; }
+.badge-deny  { background: rgba(240, 71, 71, 0.15); color: #f04747; }
+
+/* Scope Rule Cards */
+.scope-rule-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-tertiary);
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+.scope-rule-card:hover {
+    border-color: var(--accent);
+    background: var(--bg-secondary);
+}
+.scope-rule-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.scope-rule-command {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.scope-rule-target {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+.btn-danger {
+    background: rgba(240, 71, 71, 0.15);
+    color: #f04747;
+    border: 1px solid rgba(240, 71, 71, 0.3);
+}
+.btn-danger:hover {
+    background: rgba(240, 71, 71, 0.3);
+}
+
 .btn-sm {
     padding: 0.25rem 0.6rem;
     font-size: 0.75rem;
     border-radius: 6px;
+}
+
+/* Gear Cards */
+.gear-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-tertiary);
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+.gear-card:hover {
+    border-color: var(--accent);
+    background: var(--bg-secondary);
+}
+.gear-card-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* Blacklist/Whitelist Cards */
+.blacklist-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-tertiary);
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    margin-bottom: 0.4rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+.blacklist-card:hover {
+    border-color: var(--accent);
+    background: var(--bg-secondary);
+}
+.blacklist-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.blacklist-user {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+.blacklist-reason {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+.blacklist-date {
+    color: var(--text-muted);
+    font-size: 0.7rem;
 }
 
 /* Modals */

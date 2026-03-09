@@ -62,6 +62,7 @@ async function initDatabase() {
             const config = JSON.parse(configFile);
             dbConfig = {
                 host: process.env.DB_HOST || config.host || 'localhost',
+                port: parseInt(process.env.DB_PORT || config.port || '3306'),
                 user: process.env.DB_USER || config.user || 'bronxbot',
                 password: process.env.DB_PASSWORD || config.password || 'bronx2026_secure',
                 database: process.env.DB_NAME || config.database || 'bronxbot',
@@ -72,6 +73,7 @@ async function initDatabase() {
             console.log('Could not load db_config.json, using fallback defaults');
             dbConfig = {
                 host: process.env.DB_HOST || 'localhost',
+                port: parseInt(process.env.DB_PORT || '3306'),
                 user: process.env.DB_USER || 'bronxbot',
                 password: process.env.DB_PASSWORD || 'bronx2026_secure',
                 database: process.env.DB_NAME || 'bronxbot',
@@ -79,8 +81,101 @@ async function initDatabase() {
             };
         }
         
-        db = await mysql.createConnection(dbConfig);
-        console.log('Connected to MariaDB database');
+        db = mysql.createPool({
+            ...dbConfig,
+            ssl: { rejectUnauthorized: true },
+            waitForConnections: true,
+            connectionLimit: 10,
+            queueLimit: 0,
+            enableKeepAlive: true,
+            keepAliveInitialDelay: 30000
+        });
+        // Verify connection
+        await db.execute('SELECT 1');
+        console.log('Connected to MariaDB database (pool)');
+
+        // Auto-create dashboard-specific tables if missing
+        await db.execute(`CREATE TABLE IF NOT EXISTS command_scope_rules (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            guild_id VARCHAR(32) NOT NULL,
+            command_name VARCHAR(64) NOT NULL,
+            scope_type ENUM('allow','deny') NOT NULL DEFAULT 'allow',
+            target_type ENUM('channel','role','user') NOT NULL DEFAULT 'channel',
+            target_id VARCHAR(32) DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_guild (guild_id)
+        )`);
+        await db.execute(`CREATE TABLE IF NOT EXISTS guild_module_settings (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            guild_id VARCHAR(32) NOT NULL,
+            module VARCHAR(32) NOT NULL,
+            enabled TINYINT(1) NOT NULL DEFAULT 1,
+            UNIQUE KEY uq_guild_module (guild_id, module)
+        )`);
+        await db.execute(`CREATE TABLE IF NOT EXISTS guild_command_settings (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            guild_id VARCHAR(32) NOT NULL,
+            command VARCHAR(64) NOT NULL,
+            enabled TINYINT(1) NOT NULL DEFAULT 1,
+            UNIQUE KEY uq_guild_cmd (guild_id, command)
+        )`);
+        await db.execute(`CREATE TABLE IF NOT EXISTS guild_balances (
+            guild_id VARCHAR(32) PRIMARY KEY,
+            treasury BIGINT NOT NULL DEFAULT 0,
+            total_donated BIGINT NOT NULL DEFAULT 0,
+            total_given BIGINT NOT NULL DEFAULT 0
+        )`);
+        await db.execute(`CREATE TABLE IF NOT EXISTS ml_settings (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            \`key\` VARCHAR(64) NOT NULL UNIQUE,
+            value TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`);
+        await db.execute(`CREATE TABLE IF NOT EXISTS global_blacklist (
+            user_id VARCHAR(32) PRIMARY KEY,
+            reason TEXT DEFAULT NULL,
+            added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        await db.execute(`CREATE TABLE IF NOT EXISTS global_whitelist (
+            user_id VARCHAR(32) PRIMARY KEY,
+            reason TEXT DEFAULT NULL,
+            added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        await db.execute(`CREATE TABLE IF NOT EXISTS daily_deals (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            guild_id VARCHAR(32) NOT NULL,
+            item_id VARCHAR(64) NOT NULL,
+            discount INT NOT NULL DEFAULT 10,
+            stock INT DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        await db.execute(`CREATE TABLE IF NOT EXISTS giveaways (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            guild_id VARCHAR(32) NOT NULL,
+            channel_id VARCHAR(32) NOT NULL,
+            prize BIGINT NOT NULL,
+            max_winners INT NOT NULL DEFAULT 1,
+            ends_at TIMESTAMP NOT NULL,
+            ended TINYINT(1) DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_guild_active (guild_id, ended)
+        )`);
+        await db.execute(`CREATE TABLE IF NOT EXISTS giveaway_entries (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            giveaway_id INT NOT NULL,
+            user_id VARCHAR(32) NOT NULL,
+            UNIQUE KEY uq_entry (giveaway_id, user_id)
+        )`);
+
+        // Migrations: add reason column to blacklist/whitelist if missing
+        try {
+            await db.execute('ALTER TABLE global_blacklist ADD COLUMN reason TEXT DEFAULT NULL');
+        } catch (e) { /* column already exists */ }
+        try {
+            await db.execute('ALTER TABLE global_whitelist ADD COLUMN reason TEXT DEFAULT NULL');
+        } catch (e) { /* column already exists */ }
+
+        console.log('Dashboard tables verified/created');
     } catch (error) {
         console.error('Database connection failed:', error);
         process.exit(1);
@@ -887,27 +982,28 @@ app.get('/api/commands', async (req, res) => {
 app.get('/api/scope-rules', async (req, res) => {
     try {
         const guildId = req.guildId || req.query.guild_id;
-        if (!guildId) {
+        if (!guildId || guildId === 'global') {
             return res.json([]);
         }
         const [rows] = await db.execute(
             'SELECT * FROM command_scope_rules WHERE guild_id = ? ORDER BY created_at DESC',
             [guildId]
-        ).catch(() => [[]]);
+        );
         res.json(rows);
     } catch (error) {
         console.error('Scope rules error:', error);
-        res.json([]);
+        res.status(500).json({ error: 'Failed to fetch scope rules' });
     }
 });
 
 app.post('/api/scope-rules', async (req, res) => {
     try {
         const guildId = req.guildId || req.body.guild_id;
-        const { command_name, scope_type, channel_id, role_id } = req.body;
+        const { command_name, scope_type, target_type, target_id } = req.body;
+        if (!command_name) return res.status(400).json({ error: 'command_name is required' });
         await db.execute(
-            'INSERT INTO command_scope_rules (guild_id, command_name, scope_type, channel_id, role_id) VALUES (?, ?, ?, ?, ?)',
-            [guildId, command_name, scope_type || 'allow', channel_id || null, role_id || null]
+            'INSERT INTO command_scope_rules (guild_id, command_name, scope_type, target_type, target_id) VALUES (?, ?, ?, ?, ?)',
+            [guildId, command_name, scope_type || 'allow', target_type || 'channel', target_id || null]
         );
         res.json({ success: true });
     } catch (error) {
@@ -916,9 +1012,25 @@ app.post('/api/scope-rules', async (req, res) => {
     }
 });
 
+app.put('/api/scope-rules/:id', async (req, res) => {
+    try {
+        const guildId = req.guildId;
+        const { command_name, scope_type, target_type, target_id } = req.body;
+        if (!command_name) return res.status(400).json({ error: 'command_name is required' });
+        await db.execute(
+            'UPDATE command_scope_rules SET command_name = ?, scope_type = ?, target_type = ?, target_id = ? WHERE id = ? AND guild_id = ?',
+            [command_name, scope_type || 'allow', target_type || 'channel', target_id || null, req.params.id, guildId]
+        );
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Scope rule update error:', error);
+        res.status(500).json({ error: 'Failed to update scope rule' });
+    }
+});
+
 app.delete('/api/scope-rules/:id', async (req, res) => {
     try {
-        await db.execute('DELETE FROM command_scope_rules WHERE id = ?', [req.params.id]);
+        await db.execute('DELETE FROM command_scope_rules WHERE id = ? AND guild_id = ?', [req.params.id, req.guildId]);
         res.json({ success: true });
     } catch (error) {
         console.error('Scope rule delete error:', error);
@@ -1198,9 +1310,9 @@ app.get('/api/moderation/blacklist', async (req, res) => {
 
 app.post('/api/moderation/blacklist', async (req, res) => {
     try {
-        const { user_id } = req.body;
-
-        await db.execute('INSERT INTO global_blacklist (user_id) VALUES (?)', [user_id]);
+        const { user_id, reason } = req.body;
+        if (!user_id) return res.status(400).json({ error: 'user_id is required' });
+        await db.execute('INSERT INTO global_blacklist (user_id, reason) VALUES (?, ?) ON DUPLICATE KEY UPDATE reason = VALUES(reason)', [user_id, reason || null]);
         res.json({ success: true });
     } catch (error) {
         console.error('Blacklist add error:', error);
@@ -1215,6 +1327,38 @@ app.get('/api/moderation/whitelist', async (req, res) => {
     } catch (error) {
         console.error('Whitelist error:', error);
         res.status(500).json({ error: 'Failed to fetch whitelist' });
+    }
+});
+
+app.post('/api/moderation/whitelist', async (req, res) => {
+    try {
+        const { user_id, reason } = req.body;
+        if (!user_id) return res.status(400).json({ error: 'user_id is required' });
+        await db.execute('INSERT INTO global_whitelist (user_id, reason) VALUES (?, ?) ON DUPLICATE KEY UPDATE reason = VALUES(reason)', [user_id, reason || null]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Whitelist add error:', error);
+        res.status(500).json({ error: 'Failed to add to whitelist' });
+    }
+});
+
+app.delete('/api/moderation/blacklist/:user_id', async (req, res) => {
+    try {
+        await db.execute('DELETE FROM global_blacklist WHERE user_id = ?', [req.params.user_id]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Blacklist delete error:', error);
+        res.status(500).json({ error: 'Failed to remove from blacklist' });
+    }
+});
+
+app.delete('/api/moderation/whitelist/:user_id', async (req, res) => {
+    try {
+        await db.execute('DELETE FROM global_whitelist WHERE user_id = ?', [req.params.user_id]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Whitelist delete error:', error);
+        res.status(500).json({ error: 'Failed to remove from whitelist' });
     }
 });
 
@@ -1295,6 +1439,21 @@ app.post('/api/fishing/gear', async (req, res) => {
     } catch (error) {
         console.error('Fishing gear create error:', error);
         res.status(500).json({ error: 'Failed to create gear item' });
+    }
+});
+
+app.put('/api/fishing/gear/:item_id', async (req, res) => {
+    try {
+        const { name, description, price, level, max_quantity } = req.body;
+        if (!name) return res.status(400).json({ error: 'name is required' });
+        await db.execute(
+            "UPDATE shop_items SET name = ?, description = ?, price = ?, level = ?, max_quantity = ? WHERE item_id = ? AND category IN ('rod','bait')",
+            [name, description || '', price, level || 1, max_quantity || 1, req.params.item_id]
+        );
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Fishing gear update error:', error);
+        res.status(500).json({ error: 'Failed to update gear item' });
     }
 });
 

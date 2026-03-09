@@ -1410,12 +1410,11 @@ class BronxBotDashboard {
     }
 
     updateGuildBalance(data) {
-        const el = document.getElementById('guild-treasury') ||
-                   document.querySelector('.guild-balance-value') ||
-                   document.querySelector('[data-stat="guild-balance"]');
-        if (el && data) {
-            el.textContent = `$${Number(data.treasury || data.balance || 0).toLocaleString()}`;
-        }
+        if (!data) return;
+        const balanceAmounts = document.querySelectorAll('#economy .balance-amount');
+        if (balanceAmounts[0]) balanceAmounts[0].textContent = '$' + Number(data.treasury || data.balance || 0).toLocaleString();
+        if (balanceAmounts[1]) balanceAmounts[1].textContent = '$' + Number(data.total_donated || 0).toLocaleString();
+        if (balanceAmounts[2]) balanceAmounts[2].textContent = '$' + Number(data.total_given || 0).toLocaleString();
     }
 
     updateBlockedChannelsList(channels) {
@@ -1432,7 +1431,7 @@ class BronxBotDashboard {
     }
 
     updateCustomPrefixesList(prefixes) {
-        const list = document.getElementById('custom-prefixes-list');
+        const list = document.getElementById('custom-prefixes');
         if (!list) return;
         list.innerHTML = (prefixes || []).map(p => `
             <div class="list-item">
@@ -1445,38 +1444,54 @@ class BronxBotDashboard {
     }
 
     updateCommandsList(commands) {
-        const list = document.querySelector('.commands-list');
+        const list = document.getElementById('command-toggles');
         if (!list || !commands) return;
-        list.innerHTML = commands.map(cmd => `
-            <div class="command-toggle-item" data-command="${cmd.command}">
-                <span class="command-name">${cmd.command}</span>
+        list.innerHTML = commands.map(cmd => {
+            const name = cmd.name || cmd.command;
+            return `
+            <div class="command-toggle-item" data-command="${name}">
+                <span class="command-name">${name}</span>
+                ${cmd.usage !== undefined ? `<span style="color:var(--text-secondary);font-size:0.75rem;margin-left:0.5rem;">(${cmd.usage} uses)</span>` : ''}
                 <label class="toggle-switch">
                     <input type="checkbox" ${cmd.enabled !== false ? 'checked' : ''}
-                        onchange="dashboard.toggleModule('${cmd.command}', this.checked)">
-                    <span class="toggle-slider"></span>
+                        onchange="dashboard.toggleModule('${name}', this.checked)">
+                    <span class="slider"></span>
                 </label>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
     }
 
     updateScopeRulesList(rules) {
         const list = document.getElementById('scope-rules-list');
         if (!list || !rules) return;
-        list.innerHTML = (rules || []).map(r => `
-            <div class="list-item"><span>${r.command} — ${r.scope_type}: ${r.scope_id}</span></div>
+        if (!rules.length) {
+            list.innerHTML = '<p style="color: var(--text-muted); padding: 1rem;">No scope rules configured.</p>';
+            return;
+        }
+        list.innerHTML = rules.map(r => `
+            <div class="scope-rule-card" onclick="dashboard.editScopeRule(${r.id})" data-rule-id="${r.id}">
+                <div class="scope-rule-info">
+                    <span class="scope-rule-command">${r.command_name}</span>
+                    <span class="badge ${r.scope_type === 'allow' ? 'badge-allow' : 'badge-deny'}">${r.scope_type.toUpperCase()}</span>
+                    <span class="scope-rule-target">${r.target_type}: ${r.target_id}</span>
+                </div>
+                <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); dashboard.deleteScopeRule(${r.id})" title="Delete rule">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
         `).join('');
     }
 
     updateInterestSettings(data) {
-        const rate = document.getElementById('interest-rate');
-        const interval = document.getElementById('interest-interval');
-        if (rate && data?.interest_rate !== undefined) rate.value = data.interest_rate;
-        if (interval && data?.interest_interval !== undefined) interval.value = data.interest_interval;
+        if (!data) return;
+        const rate = document.getElementById('default-interest-rate');
+        const maxLevel = document.getElementById('max-interest-level');
+        if (rate && data.interest_rate !== undefined) rate.value = data.interest_rate;
+        if (maxLevel && data.max_interest_level !== undefined) maxLevel.value = data.max_interest_level;
     }
 
     displayUserEconomyResults(users) {
-        const list = document.getElementById('user-economy-results') ||
-                     document.querySelector('.user-search-results');
+        const list = document.getElementById('user-economy-result');
         if (!list || !users) return;
         list.innerHTML = users.map(u => `
             <div class="user-result-item">
@@ -1488,8 +1503,7 @@ class BronxBotDashboard {
     }
 
     updateShopItemsTable(items) {
-        const table = document.querySelector('#shop-items-table tbody') ||
-                      document.querySelector('.shop-items-list');
+        const table = document.getElementById('shop-items-tbody');
         if (!table || !items) return;
         table.innerHTML = items.map(item => `
             <tr>
@@ -1531,9 +1545,21 @@ class BronxBotDashboard {
 
     async loadMLSettingsData() {
         const settings = await this.apiCall('/ml/settings');
-        if (!settings) return;
-        const el = document.querySelector('.ml-settings-content');
-        if (el) el.textContent = JSON.stringify(settings, null, 2);
+        const el = document.getElementById('ml-settings-list');
+        if (!el) return;
+        if (!settings || (Array.isArray(settings) && !settings.length)) {
+            el.innerHTML = '<div style="color:var(--text-secondary);">No ML settings configured</div>';
+            return;
+        }
+        const entries = Array.isArray(settings) ? settings : Object.entries(settings).map(([k, v]) => ({ key: k, value: v }));
+        el.innerHTML = entries.map(s => `
+            <div class="list-item" style="display:flex;justify-content:space-between;align-items:center;">
+                <div><code style="color:var(--accent);">${s.key}</code> <span style="margin-left:0.5rem;">${s.value}</span></div>
+                <button class="btn btn-danger btn-sm" onclick="dashboard.apiCall('/ml/settings/${encodeURIComponent(s.key)}', { method: 'DELETE' }).then(() => dashboard.loadMLSettingsData())">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `).join('');
     }
 
     async loadUsersData() {
@@ -1579,18 +1605,76 @@ class BronxBotDashboard {
         }
 
         list.innerHTML = items.map(item => `
-            <div class="list-item">
-                <div style="display:flex;align-items:center;gap:0.5rem;">
-                    <strong style="font-size:0.85rem;">${item.name}</strong>
-                    <span class="badge" style="font-size:0.65rem;padding:0.1rem 0.4rem;">Lv.${item.level}</span>
-                    ${item.description ? `<span style="color:var(--text-secondary);font-size:0.75rem;">${item.description}</span>` : ''}
+            <div class="gear-card" onclick="dashboard.editGearItem('${item.item_id}', '${type}')" data-item-id="${item.item_id}">
+                <div class="gear-card-info">
+                    <strong class="gear-name">${item.name}</strong>
+                    <span class="badge" style="font-size:0.65rem;padding:0.1rem 0.4rem;">Lv.<span class="gear-level">${item.level}</span></span>
+                    ${item.description ? `<span class="gear-desc" style="color:var(--text-secondary);font-size:0.75rem;">${item.description}</span>` : '<span class="gear-desc" style="display:none;"></span>'}
+                    <span class="gear-price" style="color:var(--accent);font-weight:600;font-size:0.85rem;">$${formatNumber(item.price)}</span>
+                    <span class="gear-max-qty" style="display:none;">${item.max_quantity || 1}</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:0.6rem;">
-                    <span style="color:var(--accent);font-weight:600;font-size:0.85rem;">$${formatNumber(item.price)}</span>
-                    <button class="btn btn-sm" style="background:var(--danger-color);color:#fff;padding:0.15rem 0.4rem;font-size:0.7rem;" onclick="window.dashboard.deleteGearItem('${item.item_id}')">✕</button>
+                    <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); dashboard.editGearItem('${item.item_id}', '${type}')" title="Edit">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); dashboard.deleteGearItem('${item.item_id}')" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             </div>
         `).join('');
+    }
+
+    editGearItem(itemId, type) {
+        const card = document.querySelector(`.gear-card[data-item-id="${itemId}"]`);
+        if (!card) return;
+        const name = card.querySelector('.gear-name')?.textContent || '';
+        const level = card.querySelector('.gear-level')?.textContent || '1';
+        const desc = card.querySelector('.gear-desc')?.textContent || '';
+        const priceText = card.querySelector('.gear-price')?.textContent || '0';
+        const price = parseInt(priceText.replace(/[^0-9]/g, '')) || 0;
+        const maxQty = card.querySelector('.gear-max-qty')?.textContent || '1';
+        const label = type === 'rod' ? 'Rod' : 'Bait';
+
+        this.showModal(`Edit ${label}: ${name}`, `
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="modal-gear-name" value="${name}">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" id="modal-gear-desc" value="${desc}">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Price</label>
+                    <input type="number" id="modal-gear-price" min="1" value="${price}">
+                </div>
+                <div class="form-group">
+                    <label>Level</label>
+                    <input type="number" id="modal-gear-level" min="1" max="10" value="${level}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Max Quantity</label>
+                <input type="number" id="modal-gear-maxqty" min="1" value="${maxQty}">
+            </div>
+        `, async () => {
+            const newName = document.getElementById('modal-gear-name')?.value.trim();
+            const newDesc = document.getElementById('modal-gear-desc')?.value.trim();
+            const newPrice = parseInt(document.getElementById('modal-gear-price')?.value);
+            const newLevel = parseInt(document.getElementById('modal-gear-level')?.value) || 1;
+            const newMaxQty = parseInt(document.getElementById('modal-gear-maxqty')?.value) || 1;
+            if (!newName || !newPrice) { alert('Name and Price are required.'); return; }
+            const result = await this.apiCall(`/fishing/gear/${encodeURIComponent(itemId)}`, {
+                method: 'PUT',
+                body: JSON.stringify({ name: newName, description: newDesc, price: newPrice, level: newLevel, max_quantity: newMaxQty })
+            });
+            if (result) {
+                this.closeModal();
+                this.loadFishingData();
+            }
+        });
     }
 
     showAddGearModal(type) {
@@ -1647,22 +1731,458 @@ class BronxBotDashboard {
 
     async loadGiveawaysData() {
         const data = await this.apiCall('/giveaways/active');
-        if (!data) return;
+        const list = document.getElementById('active-giveaways');
+        if (!list) return;
+        if (!data || !data.length) { list.innerHTML = '<div style="color:var(--text-secondary);">No active giveaways</div>'; return; }
+        list.innerHTML = data.map(g => `
+            <div class="list-item" style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <strong>$${Number(g.prize).toLocaleString()}</strong>
+                    <span style="margin-left:0.5rem;color:var(--text-secondary);">${g.winner_count || 1} winner(s)</span>
+                    <span style="margin-left:0.5rem;color:var(--text-secondary);font-size:0.8rem;">Ends: ${new Date(g.ends_at).toLocaleString()}</span>
+                </div>
+                <span class="badge">${g.participants || 0} entries</span>
+            </div>
+        `).join('');
     }
 
     async loadModerationData() {
-        await Promise.all([
+        const [blacklist, whitelist] = await Promise.all([
             this.apiCall('/moderation/blacklist'),
             this.apiCall('/moderation/whitelist')
         ]);
+
+        const blEl = document.getElementById('blacklist');
+        if (blEl && blacklist) {
+            blEl.innerHTML = (blacklist.length ? blacklist : []).map(u => `
+                <div class="blacklist-card" onclick="dashboard.editBlacklistEntry('${u.user_id}', 'blacklist')">
+                    <div class="blacklist-info">
+                        <span class="blacklist-user">${u.user_id}</span>
+                        <span class="blacklist-reason">${u.reason ? u.reason : '<em style="color:var(--text-muted);">No reason</em>'}</span>
+                        ${u.added_at ? `<span class="blacklist-date">${new Date(u.added_at).toLocaleDateString()}</span>` : ''}
+                    </div>
+                    <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); dashboard.apiCall('/moderation/blacklist/${u.user_id}', { method: 'DELETE' }).then(() => dashboard.loadModerationData())" title="Remove">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('') || '<div style="color:var(--text-secondary);font-size:0.85rem;">No blacklisted users</div>';
+        }
+
+        const wlEl = document.getElementById('whitelist');
+        if (wlEl && whitelist) {
+            wlEl.innerHTML = (whitelist.length ? whitelist : []).map(u => `
+                <div class="blacklist-card" onclick="dashboard.editBlacklistEntry('${u.user_id}', 'whitelist')">
+                    <div class="blacklist-info">
+                        <span class="blacklist-user">${u.user_id}</span>
+                        <span class="blacklist-reason">${u.reason ? u.reason : '<em style="color:var(--text-muted);">No reason</em>'}</span>
+                        ${u.added_at ? `<span class="blacklist-date">${new Date(u.added_at).toLocaleDateString()}</span>` : ''}
+                    </div>
+                    <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); dashboard.apiCall('/moderation/whitelist/${u.user_id}', { method: 'DELETE' }).then(() => dashboard.loadModerationData())" title="Remove">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('') || '<div style="color:var(--text-secondary);font-size:0.85rem;">No whitelisted users</div>';
+        }
+
+        const cooldowns = await this.apiCall('/moderation/cooldowns');
+        const cdBody = document.getElementById('cooldown-settings-tbody');
+        if (cdBody && cooldowns) {
+            cdBody.innerHTML = (cooldowns || []).map(c => `
+                <tr>
+                    <td>${c.command}</td>
+                    <td>${c.cooldown_seconds}s</td>
+                    <td><button class="btn btn-sm btn-secondary" onclick="dashboard.editCooldown('${c.command}')">Edit</button></td>
+                </tr>
+            `).join('');
+        }
+    }
+
+    editCooldown(command) {
+        this.showModal('Edit Cooldown', `
+            <div class="form-group">
+                <label>Command: <strong>${command}</strong></label>
+            </div>
+            <div class="form-group">
+                <label>Cooldown (seconds)</label>
+                <input type="number" id="modal-cooldown-value" min="0" value="5">
+            </div>
+        `, async () => {
+            const seconds = parseInt(document.getElementById('modal-cooldown-value')?.value);
+            await this.apiCall('/moderation/cooldowns', {
+                method: 'POST',
+                body: JSON.stringify({ command, cooldown_seconds: seconds })
+            });
+            this.closeModal();
+            this.loadModerationData();
+        });
     }
 
     async loadReactionRolesData() {
-        await this.apiCall('/reaction-roles');
+        const roles = await this.apiCall('/reaction-roles');
+        const list = document.getElementById('reaction-roles-list');
+        if (!list) return;
+        if (!roles || !roles.length) { list.innerHTML = '<div style="color:var(--text-secondary);">No reaction roles configured</div>'; return; }
+        list.innerHTML = roles.map(r => `
+            <div class="list-item" style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <span>${r.emoji}</span>
+                    <span style="margin-left:0.5rem;">Message: ${r.message_id}</span>
+                    <span style="margin-left:0.5rem;color:var(--text-secondary);">→ Role: ${r.role_id}</span>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="dashboard.apiCall('/reaction-roles/${r.id || r.message_id}', { method: 'DELETE' }).then(() => dashboard.loadReactionRolesData())">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `).join('');
     }
 
-    // Additional methods for other functionalities would be implemented here
-    // This is a comprehensive foundation that covers the main dashboard functionality
+    // ── Scope Rules ──
+    addScopeRule() {
+        this.showModal('Add Scope Rule', `
+            <div class="form-group">
+                <label>Command Name</label>
+                <input type="text" id="modal-scope-command" placeholder="e.g. balance">
+            </div>
+            <div class="form-group">
+                <label>Rule Type</label>
+                <select id="modal-scope-type">
+                    <option value="allow">Allow</option>
+                    <option value="deny">Deny</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Target Type</label>
+                <select id="modal-target-type">
+                    <option value="channel">Channel</option>
+                    <option value="role">Role</option>
+                    <option value="user">User</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Target ID</label>
+                <input type="text" id="modal-target-id" placeholder="Discord ID...">
+            </div>
+        `, async () => {
+            const command_name = document.getElementById('modal-scope-command')?.value.trim();
+            const scope_type = document.getElementById('modal-scope-type')?.value;
+            const target_type = document.getElementById('modal-target-type')?.value;
+            const target_id = document.getElementById('modal-target-id')?.value.trim();
+            if (!command_name || !target_id) { alert('Command name and target ID are required.'); return; }
+            await this.apiCall('/scope-rules', {
+                method: 'POST',
+                body: JSON.stringify({ command_name, scope_type, target_type, target_id })
+            });
+            this.closeModal();
+            this.loadCommandsData();
+        });
+    }
+
+    editScopeRule(ruleId) {
+        const list = document.getElementById('scope-rules-list');
+        const card = list?.querySelector(`[data-rule-id="${ruleId}"]`);
+        if (!card) return;
+        const command_name = card.querySelector('.scope-rule-command')?.textContent || '';
+        const badgeEl = card.querySelector('.badge');
+        const scope_type = badgeEl?.textContent.trim().toLowerCase() || 'allow';
+        const targetText = card.querySelector('.scope-rule-target')?.textContent || '';
+        const [target_type, target_id] = targetText.includes(':') ? targetText.split(':').map(s => s.trim()) : ['channel', ''];
+
+        this.showModal('Edit Scope Rule', `
+            <div class="form-group">
+                <label>Command Name</label>
+                <input type="text" id="modal-scope-command" value="${command_name}">
+            </div>
+            <div class="form-group">
+                <label>Rule Type</label>
+                <select id="modal-scope-type">
+                    <option value="allow" ${scope_type === 'allow' ? 'selected' : ''}>Allow</option>
+                    <option value="deny" ${scope_type === 'deny' ? 'selected' : ''}>Deny</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Target Type</label>
+                <select id="modal-target-type">
+                    <option value="channel" ${target_type === 'channel' ? 'selected' : ''}>Channel</option>
+                    <option value="role" ${target_type === 'role' ? 'selected' : ''}>Role</option>
+                    <option value="user" ${target_type === 'user' ? 'selected' : ''}>User</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Target ID</label>
+                <input type="text" id="modal-target-id" value="${target_id}">
+            </div>
+        `, async () => {
+            const newCommand = document.getElementById('modal-scope-command')?.value.trim();
+            const newScopeType = document.getElementById('modal-scope-type')?.value;
+            const newTargetType = document.getElementById('modal-target-type')?.value;
+            const newTargetId = document.getElementById('modal-target-id')?.value.trim();
+            if (!newCommand || !newTargetId) { alert('Command name and target ID are required.'); return; }
+            await this.apiCall(`/scope-rules/${ruleId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ command_name: newCommand, scope_type: newScopeType, target_type: newTargetType, target_id: newTargetId })
+            });
+            this.closeModal();
+            this.loadCommandsData();
+        });
+    }
+
+    async deleteScopeRule(ruleId) {
+        if (!confirm('Delete this scope rule?')) return;
+        await this.apiCall(`/scope-rules/${ruleId}`, { method: 'DELETE' });
+        this.loadCommandsData();
+    }
+
+    // ── Daily Deals ──
+    addDailyDeal() {
+        const item_id = document.getElementById('deal-item-select')?.value;
+        const discount = parseInt(document.getElementById('deal-discount')?.value);
+        const stock = document.getElementById('deal-stock')?.value ? parseInt(document.getElementById('deal-stock').value) : null;
+        if (!item_id || !discount) { this.showNotification('Select an item and discount %', 'warning'); return; }
+        this.apiCall('/shop/daily-deals', {
+            method: 'POST',
+            body: JSON.stringify({ item_id, discount, stock })
+        }).then(() => this.loadShopData());
+    }
+
+    // ── Fishing Logs ──
+    viewFishingLogs() {
+        this.apiCall('/fishing/logs').then(data => {
+            if (!data) return;
+            this.showModal('Fishing Profit Analysis', `
+                <pre style="max-height:400px;overflow:auto;font-size:0.8rem;background:var(--bg-secondary);padding:1rem;border-radius:0.5rem;">${JSON.stringify(data, null, 2)}</pre>
+            `);
+        });
+    }
+
+    downloadFishingData() {
+        window.open(`${this.apiEndpoint}/fishing/export?guild=${this.currentGuild || ''}`, '_blank');
+    }
+
+    // ── Giveaways ──
+    createGiveaway() {
+        const prize = parseInt(document.getElementById('giveaway-prize')?.value);
+        const winners = parseInt(document.getElementById('giveaway-winners')?.value) || 1;
+        const duration = parseInt(document.getElementById('giveaway-duration')?.value) || 24;
+        const channel = document.getElementById('giveaway-channel')?.value;
+        if (!prize || !channel) { this.showNotification('Prize amount and channel are required', 'warning'); return; }
+        this.apiCall('/giveaways', {
+            method: 'POST',
+            body: JSON.stringify({ prize, max_winners: winners, duration_hours: duration, channel_id: channel })
+        }).then(res => {
+            if (res) { this.showNotification('Giveaway created!', 'success'); this.loadGiveawaysData(); }
+        });
+    }
+
+    loadGiveawayHistory() {
+        this.apiCall('/giveaways/history').then(data => {
+            const list = document.getElementById('giveaway-history-list');
+            if (!list || !data) return;
+            if (!data.length) { list.innerHTML = '<div style="color:var(--text-secondary);">No history yet</div>'; return; }
+            list.innerHTML = data.map(g => `
+                <div class="list-item">
+                    <span>Prize: $${Number(g.prize).toLocaleString()} &middot; Winners: ${g.winner_count || 0}</span>
+                    <span style="color:var(--text-secondary);font-size:0.8rem;">${timeAgo(g.ended_at)}</span>
+                </div>
+            `).join('');
+        });
+    }
+
+    // ── Moderation ──
+    addAutopurge() {
+        this.showModal('Add Autopurge Schedule', `
+            <div class="form-group">
+                <label>Channel ID</label>
+                <input type="text" id="modal-autopurge-channel" placeholder="Channel ID...">
+            </div>
+            <div class="form-group">
+                <label>Interval (minutes)</label>
+                <input type="number" id="modal-autopurge-interval" min="1" value="60">
+            </div>
+            <div class="form-group">
+                <label>Max Message Age (minutes)</label>
+                <input type="number" id="modal-autopurge-age" min="1" value="1440">
+            </div>
+        `, async () => {
+            const channel_id = document.getElementById('modal-autopurge-channel')?.value.trim();
+            const interval = parseInt(document.getElementById('modal-autopurge-interval')?.value);
+            const max_age = parseInt(document.getElementById('modal-autopurge-age')?.value);
+            if (!channel_id) { alert('Channel ID required'); return; }
+            await this.apiCall('/moderation/autopurge', {
+                method: 'POST',
+                body: JSON.stringify({ channel_id, interval_minutes: interval, max_age_minutes: max_age })
+            });
+            this.closeModal();
+            this.loadModerationData();
+        });
+    }
+
+    addToBlacklist() {
+        const userId = document.getElementById('blacklist-user-id')?.value.trim();
+        if (!userId) { this.showNotification('Enter a User ID', 'warning'); return; }
+        const reason = document.getElementById('blacklist-reason')?.value.trim() || null;
+        this.apiCall('/moderation/blacklist', {
+            method: 'POST',
+            body: JSON.stringify({ user_id: userId, reason })
+        }).then(res => {
+            if (res) {
+                document.getElementById('blacklist-user-id').value = '';
+                const reasonEl = document.getElementById('blacklist-reason');
+                if (reasonEl) reasonEl.value = '';
+                this.loadModerationData();
+            }
+        });
+    }
+
+    addToWhitelist() {
+        const userId = document.getElementById('whitelist-user-id')?.value.trim();
+        if (!userId) { this.showNotification('Enter a User ID', 'warning'); return; }
+        const reason = document.getElementById('whitelist-reason')?.value.trim() || null;
+        this.apiCall('/moderation/whitelist', {
+            method: 'POST',
+            body: JSON.stringify({ user_id: userId, reason })
+        }).then(res => {
+            if (res) {
+                document.getElementById('whitelist-user-id').value = '';
+                const reasonEl = document.getElementById('whitelist-reason');
+                if (reasonEl) reasonEl.value = '';
+                this.loadModerationData();
+            }
+        });
+    }
+
+    editBlacklistEntry(userId, listType) {
+        const card = document.querySelector(`#${listType} .blacklist-card[onclick*="'${userId}'"]`);
+        const currentReason = card?.querySelector('.blacklist-reason')?.textContent || '';
+        const displayReason = currentReason === 'No reason' ? '' : currentReason;
+
+        this.showModal(`Edit ${listType === 'blacklist' ? 'Blacklist' : 'Whitelist'} Entry`, `
+            <div class="form-group">
+                <label>User ID</label>
+                <input type="text" value="${userId}" disabled style="opacity:0.6;">
+            </div>
+            <div class="form-group">
+                <label>Reason</label>
+                <textarea id="modal-bl-reason" rows="3" placeholder="Reason for ${listType === 'blacklist' ? 'blacklisting' : 'whitelisting'}..." style="width:100%;resize:vertical;">${displayReason}</textarea>
+            </div>
+        `, async () => {
+            const reason = document.getElementById('modal-bl-reason')?.value.trim() || null;
+            await this.apiCall(`/moderation/${listType}`, {
+                method: 'POST',
+                body: JSON.stringify({ user_id: userId, reason })
+            });
+            this.closeModal();
+            this.loadModerationData();
+        });
+    }
+
+    // ── Reaction Roles ──
+    addReactionRole() {
+        const message_id = document.getElementById('rr-message-id')?.value.trim();
+        const channel_id = document.getElementById('rr-channel-id')?.value.trim();
+        const emoji = document.getElementById('rr-emoji')?.value.trim();
+        const role_id = document.getElementById('rr-role-id')?.value.trim();
+        if (!message_id || !channel_id || !emoji || !role_id) {
+            this.showNotification('All fields are required', 'warning'); return;
+        }
+        this.apiCall('/reaction-roles', {
+            method: 'POST',
+            body: JSON.stringify({ message_id, channel_id, emoji, role_id })
+        }).then(res => {
+            if (res) {
+                this.showNotification('Reaction role added!', 'success');
+                ['rr-message-id', 'rr-channel-id', 'rr-emoji', 'rr-role-id'].forEach(id => {
+                    const el = document.getElementById(id); if (el) el.value = '';
+                });
+                this.loadReactionRolesData();
+            }
+        });
+    }
+
+    // ── Leaderboards ──
+    switchLeaderboard(type) {
+        document.querySelectorAll('[data-leaderboard]').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-leaderboard') === type);
+        });
+        this.apiCall(`/stats/leaderboard?type=${type}`).then(data => {
+            const list = document.getElementById('leaderboard-content');
+            if (!list) return;
+            if (!data || !data.length) { list.innerHTML = '<div style="color:var(--text-secondary);">No data</div>'; return; }
+            list.innerHTML = `<table class="leaderboard-table"><thead><tr><th>#</th><th>User</th><th>Value</th></tr></thead><tbody>${
+                data.map((u, i) => `<tr><td>${i + 1}</td><td>${u.username || u.user_id}</td><td>$${Number(u.value).toLocaleString()}</td></tr>`).join('')
+            }</tbody></table>`;
+        });
+    }
+
+    // ── ML Settings ──
+    addMLSetting() {
+        this.showModal('Add ML Setting', `
+            <div class="form-group">
+                <label>Setting Key</label>
+                <input type="text" id="modal-ml-key" placeholder="e.g. learning_rate">
+            </div>
+            <div class="form-group">
+                <label>Value</label>
+                <input type="text" id="modal-ml-value" placeholder="e.g. 0.01">
+            </div>
+        `, async () => {
+            const key = document.getElementById('modal-ml-key')?.value.trim();
+            const value = document.getElementById('modal-ml-value')?.value.trim();
+            if (!key || !value) { alert('Both fields required'); return; }
+            await this.apiCall('/ml/settings', {
+                method: 'POST',
+                body: JSON.stringify({ key, value })
+            });
+            this.closeModal();
+            this.loadMLSettingsData();
+        });
+    }
+
+    // ── User Management ──
+    searchUsers() {
+        const query = document.getElementById('user-management-search')?.value.trim();
+        if (!query) return;
+        this.apiCall(`/users/search?q=${encodeURIComponent(query)}`).then(users => {
+            const list = document.getElementById('user-search-results');
+            if (!list) return;
+            if (!users || !users.length) { list.innerHTML = '<div style="color:var(--text-secondary);">No users found</div>'; return; }
+            list.innerHTML = users.map(u => `
+                <div class="list-item" style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <strong>${u.username || u.user_id}</strong>
+                        <span style="color:var(--text-secondary);font-size:0.8rem;margin-left:0.5rem;">${u.user_id}</span>
+                    </div>
+                    <div style="display:flex;gap:0.8rem;font-size:0.85rem;">
+                        <span>Wallet: $${Number(u.wallet || 0).toLocaleString()}</span>
+                        <span>Bank: $${Number(u.bank || 0).toLocaleString()}</span>
+                    </div>
+                </div>
+            `).join('');
+        });
+    }
+
+    grantBadge() {
+        const userId = document.getElementById('badge-user-id')?.value.trim();
+        const badgeType = document.getElementById('badge-type')?.value;
+        if (!userId) { this.showNotification('Enter a User ID', 'warning'); return; }
+        this.apiCall('/users/badges', {
+            method: 'POST',
+            body: JSON.stringify({ user_id: userId, badge: badgeType, action: 'grant' })
+        }).then(res => {
+            if (res) this.showNotification(`Granted ${badgeType} badge to ${userId}`, 'success');
+        });
+    }
+
+    revokeBadge() {
+        const userId = document.getElementById('badge-user-id')?.value.trim();
+        const badgeType = document.getElementById('badge-type')?.value;
+        if (!userId) { this.showNotification('Enter a User ID', 'warning'); return; }
+        this.apiCall('/users/badges', {
+            method: 'POST',
+            body: JSON.stringify({ user_id: userId, badge: badgeType, action: 'revoke' })
+        }).then(res => {
+            if (res) this.showNotification(`Revoked ${badgeType} badge from ${userId}`, 'success');
+        });
+    }
 }
 
 // Initialize dashboard when DOM is loaded
@@ -1680,10 +2200,16 @@ function formatCurrency(amount) {
 }
 
 function formatNumber(num) {
-    if (num >= 1000000) {
-        return (num / 1000000).toFixed(1) + 'M';
-    } else if (num >= 1000) {
-        return (num / 1000).toFixed(1) + 'K';
+    if (num >= 1e15) {
+        return (num / 1e15).toFixed(1) + 'Q';
+    } else if (num >= 1e12) {
+        return (num / 1e12).toFixed(1) + 'T';
+    } else if (num >= 1e9) {
+        return (num / 1e9).toFixed(1) + 'B';
+    } else if (num >= 1e6) {
+        return (num / 1e6).toFixed(1) + 'M';
+    } else if (num >= 1e3) {
+        return (num / 1e3).toFixed(1) + 'K';
     }
     return num.toString();
 }

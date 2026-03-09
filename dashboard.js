@@ -1508,15 +1508,24 @@ class BronxBotDashboard {
         if (!list || !commands) return;
         list.innerHTML = commands.map(cmd => {
             const name = cmd.name || cmd.command;
+            const hasExclusive = cmd.exclusive_channel || cmd.exclusive_role;
             return `
             <div class="command-toggle-item" data-command="${name}">
-                <span class="command-name">${name}</span>
-                ${cmd.usage !== undefined ? `<span style="color:var(--text-secondary);font-size:0.75rem;margin-left:0.5rem;">(${cmd.usage} uses)</span>` : ''}
-                <label class="toggle-switch">
-                    <input type="checkbox" ${cmd.enabled !== false ? 'checked' : ''}
-                        onchange="dashboard.toggleModule('${name}', this.checked)">
-                    <span class="slider"></span>
-                </label>
+                <div class="command-info" style="display:flex;align-items:center;gap:0.5rem;flex:1;">
+                    <span class="command-name">${name}</span>
+                    ${cmd.usage !== undefined ? `<span style="color:var(--text-secondary);font-size:0.75rem;">(${cmd.usage} uses)</span>` : ''}
+                    ${hasExclusive ? `<span class="badge badge-exclusive" style="font-size:0.65rem;padding:0.1rem 0.4rem;background:var(--accent);color:#fff;" title="Exclusive to ${cmd.exclusive_channel ? 'channel ' + cmd.exclusive_channel : 'role ' + cmd.exclusive_role}">-e</span>` : ''}
+                </div>
+                <div class="command-actions" style="display:flex;align-items:center;gap:0.5rem;">
+                    <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); dashboard.showExclusiveModal('${name}', 'command')" title="Make Exclusive (-e flag)" style="padding:0.2rem 0.4rem;font-size:0.7rem;">
+                        <i class="fas fa-lock"></i>
+                    </button>
+                    <label class="toggle-switch">
+                        <input type="checkbox" ${cmd.enabled !== false ? 'checked' : ''}
+                            onchange="dashboard.toggleModule('${name}', this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
             </div>`;
         }).join('');
     }
@@ -1528,18 +1537,21 @@ class BronxBotDashboard {
             list.innerHTML = '<p style="color: var(--text-muted); padding: 1rem;">No scope rules configured.</p>';
             return;
         }
-        list.innerHTML = rules.map(r => `
+        list.innerHTML = rules.map(r => {
+            const scopeClass = r.scope_type === 'exclusive' ? 'badge-exclusive' : (r.scope_type === 'allow' ? 'badge-allow' : 'badge-deny');
+            const scopeStyle = r.scope_type === 'exclusive' ? 'background:var(--accent);color:#fff;' : '';
+            return `
             <div class="scope-rule-card" onclick="dashboard.editScopeRule(${r.id})" data-rule-id="${r.id}">
                 <div class="scope-rule-info">
                     <span class="scope-rule-command">${r.command_name}</span>
-                    <span class="badge ${r.scope_type === 'allow' ? 'badge-allow' : 'badge-deny'}">${r.scope_type.toUpperCase()}</span>
+                    <span class="badge ${scopeClass}" style="${scopeStyle}">${r.scope_type.toUpperCase()}${r.scope_type === 'exclusive' ? ' (-e)' : ''}</span>
                     <span class="scope-rule-target">${r.target_type}: ${r.target_id}</span>
                 </div>
                 <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); dashboard.deleteScopeRule(${r.id})" title="Delete rule">
                     <i class="fas fa-trash"></i>
                 </button>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
     }
 
     updateInterestSettings(data) {
@@ -2184,7 +2196,9 @@ class BronxBotDashboard {
                 <select id="modal-scope-type">
                     <option value="allow">Allow</option>
                     <option value="deny">Deny</option>
+                    <option value="exclusive">Exclusive (-e flag)</option>
                 </select>
+                <p style="color:var(--text-muted);font-size:0.75rem;margin-top:0.25rem;">Exclusive: Command ONLY works in the specified channel/role</p>
             </div>
             <div class="form-group">
                 <label>Target Type</label>
@@ -2213,13 +2227,57 @@ class BronxBotDashboard {
         });
     }
 
+    showExclusiveModal(commandName, type = 'command') {
+        this.showModal(`Make ${commandName} Exclusive`, `
+            <p style="color:var(--text-secondary);margin-bottom:1rem;">Make <strong>${commandName}</strong> only work in a specific channel or for a specific role (like the -e flag in bot commands).</p>
+            <div class="form-group">
+                <label>Restrict To</label>
+                <select id="modal-exclusive-type">
+                    <option value="channel">Channel Only</option>
+                    <option value="role">Role Only</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Channel/Role ID</label>
+                <input type="text" id="modal-exclusive-id" placeholder="Discord ID...">
+            </div>
+            <div class="form-group" style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-color);">
+                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                    <input type="checkbox" id="modal-exclusive-remove" style="width:auto;">
+                    <span>Remove existing exclusive restriction</span>
+                </label>
+            </div>
+        `, async () => {
+            const removeExclusive = document.getElementById('modal-exclusive-remove')?.checked;
+            const target_type = document.getElementById('modal-exclusive-type')?.value;
+            const target_id = document.getElementById('modal-exclusive-id')?.value.trim();
+            
+            if (removeExclusive) {
+                // Remove all exclusive rules for this command
+                await this.apiCall(`/scope-rules/exclusive/${encodeURIComponent(commandName)}`, { method: 'DELETE' });
+                this.showNotification(`Removed exclusive restriction from ${commandName}`, 'success');
+            } else {
+                if (!target_id) { alert('Please enter a channel or role ID.'); return; }
+                await this.apiCall('/scope-rules', {
+                    method: 'POST',
+                    body: JSON.stringify({ command_name: commandName, scope_type: 'exclusive', target_type, target_id })
+                });
+                this.showNotification(`${commandName} is now exclusive to ${target_type} ${target_id}`, 'success');
+            }
+            this.closeModal();
+            this.loadCommandsData();
+        });
+    }
+
     editScopeRule(ruleId) {
         const list = document.getElementById('scope-rules-list');
         const card = list?.querySelector(`[data-rule-id="${ruleId}"]`);
         if (!card) return;
         const command_name = card.querySelector('.scope-rule-command')?.textContent || '';
         const badgeEl = card.querySelector('.badge');
-        const scope_type = badgeEl?.textContent.trim().toLowerCase() || 'allow';
+        let scope_type = badgeEl?.textContent.trim().toLowerCase() || 'allow';
+        // Handle "EXCLUSIVE (-e)" badge text
+        if (scope_type.includes('exclusive')) scope_type = 'exclusive';
         const targetText = card.querySelector('.scope-rule-target')?.textContent || '';
         const [target_type, target_id] = targetText.includes(':') ? targetText.split(':').map(s => s.trim()) : ['channel', ''];
 
@@ -2233,7 +2291,9 @@ class BronxBotDashboard {
                 <select id="modal-scope-type">
                     <option value="allow" ${scope_type === 'allow' ? 'selected' : ''}>Allow</option>
                     <option value="deny" ${scope_type === 'deny' ? 'selected' : ''}>Deny</option>
+                    <option value="exclusive" ${scope_type === 'exclusive' ? 'selected' : ''}>Exclusive (-e flag)</option>
                 </select>
+                <p style="color:var(--text-muted);font-size:0.75rem;margin-top:0.25rem;">Exclusive: Command ONLY works in the specified channel/role</p>
             </div>
             <div class="form-group">
                 <label>Target Type</label>

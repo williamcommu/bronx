@@ -37,6 +37,199 @@ body {
     line-height: 1.6;
 }
 
+/* Global Form Element Styles */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="url"],
+input[type="tel"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+select,
+textarea {
+    width: 100%;
+    background-color: var(--bg-tertiary);
+    color: var(--fg);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 0.875rem 1.125rem;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+input[type="url"]:focus,
+input[type="tel"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+input[type="datetime-local"]:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background-color: var(--card-bg);
+    box-shadow: 0 0 0 3px rgba(180, 167, 214, 0.15);
+}
+
+input[type="text"]:hover:not(:focus),
+input[type="number"]:hover:not(:focus),
+input[type="email"]:hover:not(:focus),
+input[type="password"]:hover:not(:focus),
+input[type="search"]:hover:not(:focus),
+input[type="url"]:hover:not(:focus),
+input[type="tel"]:hover:not(:focus),
+input[type="date"]:hover:not(:focus),
+input[type="time"]:hover:not(:focus),
+input[type="datetime-local"]:hover:not(:focus),
+select:hover:not(:focus),
+textarea:hover:not(:focus) {
+    border-color: var(--border-light);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+/* Select dropdown arrow styling */
+select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
+    cursor: pointer;
+}
+
+select option {
+    background-color: var(--card-bg);
+    color: var(--fg);
+    padding: 0.5rem;
+}
+
+/* Checkbox styling (toggle switches override these via higher specificity) */
+input[type="checkbox"] {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    background-color: var(--bg-tertiary);
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    vertical-align: middle;
+}
+
+input[type="checkbox"]:hover {
+    border-color: var(--accent-muted);
+}
+
+input[type="checkbox"]:checked {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+
+input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 6px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+input[type="checkbox"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(180, 167, 214, 0.15);
+}
+
+/* Radio button styling */
+input[type="radio"] {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    background-color: var(--bg-tertiary);
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    vertical-align: middle;
+}
+
+input[type="radio"]:hover {
+    border-color: var(--accent-muted);
+}
+
+input[type="radio"]:checked {
+    border-color: var(--accent);
+}
+
+input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent);
+    border-radius: 50%;
+}
+
+input[type="radio"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(180, 167, 214, 0.15);
+}
+
+/* Textarea specific styles */
+textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* Form layout helpers */
+.add-prefix-form,
+.add-user-form,
+.user-search-form,
+.user-badge-form,
+.daily-deals-form .form-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.add-prefix-form input,
+.add-user-form input,
+.user-search-form input,
+.user-badge-form input,
+.user-badge-form select {
+    flex: 1;
+    min-width: 150px;
+}
+
+.daily-deals-form .form-row input,
+.daily-deals-form .form-row select {
+    flex: 1;
+    min-width: 120px;
+}
+
 .dashboard-container {
     display: flex;
     min-height: 100vh;
@@ -855,6 +1048,7 @@ textarea.code {
     overflow: hidden;
 }
 
+.badge-exclusive { background: var(--accent); color: #fff; font-weight: 600; }
 .settings-section::before,
 .section::before {
     content: '';
@@ -896,6 +1090,9 @@ textarea.code {
     opacity: 0;
     width: 0;
     height: 0;
+    min-width: 0;
+    position: absolute;
+    pointer-events: none;
 }
 
 .slider {
@@ -1572,6 +1769,9 @@ textarea.code {
     opacity: 0;
     width: 0;
     height: 0;
+    min-width: 0;
+    position: absolute;
+    pointer-events: none;
 }
 
 .toggle-slider {

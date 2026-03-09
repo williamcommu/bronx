@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bronx</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-robot"></i> bronx</h2>
+                <p>dashboard</p>
+            </div>
+            
+            <!-- Authentication Section -->
+            <div class="auth-section" id="auth-section">
+                <!-- Logged out state -->
+                <div id="login-prompt" class="login-prompt">
+                    <p>Login with Discord to manage your servers</p>
+                    <a href="/login" class="btn btn-primary auth-btn">
+                        <i class="fab fa-discord"></i> Login with Discord
+                    </a>
+                </div>
+                
+                <!-- Logged in state -->
+                <div id="user-info" class="user-info" style="display: none;">
+                    <div class="user-avatar">
+                        <img id="user-avatar" src="" alt="User Avatar">
+                    </div>
+                    <div class="user-details">
+                        <span id="user-name">Username</span>
+                        <button id="logout-btn" class="logout-btn">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Server Selection -->
+                <div id="server-selection" class="server-selection" style="display: none;">
+                    <label>Select Server:</label>
+                    <div class="server-dropdown-custom" id="server-dropdown-custom">
+                        <button class="server-dropdown-trigger" id="server-dropdown-trigger" type="button">
+                            <div class="server-option-icon" id="selected-server-icon">
+                                <i class="fas fa-server"></i>
+                            </div>
+                            <span id="selected-server-name">Choose a server...</span>
+                            <i class="fas fa-chevron-down dropdown-arrow"></i>
+                        </button>
+                        <div class="server-dropdown-list" id="server-dropdown-list"></div>
+                    </div>
+                </div>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="menu-item active" data-tab="overview">
+                    <i class="fas fa-chart-line"></i> Overview
+                </li>
+                <li class="menu-item" data-tab="guild-settings">
+                    <i class="fas fa-cog"></i> Guild Settings
+                </li>
+                <li class="menu-item" data-tab="commands">
+                    <i class="fas fa-terminal"></i> Commands & Modules
+                </li>
+                <li class="menu-item" data-tab="economy">
+                    <i class="fas fa-coins"></i> Economy Management
+                </li>
+                <li class="menu-item" data-tab="shop">
+                    <i class="fas fa-store"></i> Shop & Marketplace
+                </li>
+                <li class="menu-item" data-tab="fishing">
+                    <i class="fas fa-fish"></i> Fishing System
+                </li>
+                <li class="menu-item" data-tab="giveaways">
+                    <i class="fas fa-gift"></i> Giveaways
+                </li>
+                <li class="menu-item" data-tab="moderation">
+                    <i class="fas fa-shield-alt"></i> Moderation
+                </li>
+                <li class="menu-item" data-tab="reaction-roles">
+                    <i class="fas fa-smile"></i> Reaction Roles
+                </li>
+                <li class="menu-item" data-tab="statistics">
+                    <i class="fas fa-chart-bar"></i> Statistics
+                </li>
+                <li class="menu-item" data-tab="ml-settings">
+                    <i class="fas fa-brain"></i> ML Settings
+                </li>
+                <li class="menu-item" data-tab="users">
+                    <i class="fas fa-users"></i> User Management
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="dashboard-header">
+                <div class="header-left">
+                    <h1 id="page-title">Dashboard Overview</h1>
+                </div>
+                <div class="header-right">
+                    <!-- Real-time status indicators -->
+                    <div class="realtime-status" id="realtime-status">
+                        <div class="status-item">
+                            <div class="status-indicator" id="db-status" title="Database Connection">
+                                <i class="fas fa-database"></i>
+                                <span class="status-dot"></span>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-indicator" id="socket-status" title="Real-time Connection">
+                                <i class="fas fa-wifi"></i>
+                                <span class="status-dot"></span>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <span id="live-users-count" class="live-counter">0</span>
+                            <small>online</small>
+                        </div>
+                    </div>
+                    
+                    <div class="current-server" id="current-server" style="display: none;">
+                        <i class="fas fa-server"></i>
+                        <span id="current-server-name">No server selected</span>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-primary" id="save-all" style="display: none;">
+                            <i class="fas fa-save"></i> Save All Changes
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Sections -->
+            
+            <!-- Overview Tab -->
+            <section id="overview" class="tab-content active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Total Users</h3>
+                            <p class="stat-number">1,234</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Total Economy Value</h3>
+                            <p class="stat-number">$12.5M</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-terminal"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Commands Today</h3>
+                            <p class="stat-number">8,456</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-fish"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Fish Caught Today</h3>
+                            <p class="stat-number">2,341</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="activity-chart"></canvas>
+                </div>
+
+                <div class="recent-activity">
+                    <h3>Recent Activity</h3>
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <i class="fas fa-user-plus"></i>
+                            <span>New user joined economy system</span>
+                            <span class="activity-time">2 minutes ago</span>
+                        </div>
+                        <div class="activity-item">
+                            <i class="fas fa-gift"></i>
+                            <span>Giveaway #123 completed with 45 participants</span>
+                            <span class="activity-time">15 minutes ago</span>
+                        </div>
+                        <div class="activity-item">
+                            <i class="fas fa-store"></i>
+                            <span>Daily deals refreshed in marketplace</span>
+                            <span class="activity-time">1 hour ago</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Guild Settings Tab -->
+            <section id="guild-settings" class="tab-content">
+                <div class="settings-section">
+                    <h3>Basic Settings</h3>
+                    <div class="setting-item">
+                        <label for="guild-prefix">Command Prefix</label>
+                        <input type="text" id="guild-prefix" value="bb " maxlength="10">
+                        <span class="help-text">Characters users type before commands</span>
+                    </div>
+                    <div class="setting-item">
+                        <label for="logging-enabled">Enable Logging</label>
+                        <input type="checkbox" id="logging-enabled">
+                        <span class="help-text">Log bot actions and command usage</span>
+                    </div>
+                    <div class="setting-item">
+                        <label for="logging-channel">Logging Channel</label>
+                        <select id="logging-channel">
+                            <option value="">Select channel...</option>
+                            <option value="123456789">#bot-logs</option>
+                            <option value="987654321">#admin-logs</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Blocked Channels</h3>
+                    <div class="blocked-channels">
+                        <div class="channel-list" id="blocked-channels-list">
+                            <!-- Dynamic content -->
+                        </div>
+                        <button class="btn btn-secondary" id="add-blocked-channel">
+                            <i class="fas fa-plus"></i> Add Channel
+                        </button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Custom Prefixes</h3>
+                    <div class="prefix-list" id="custom-prefixes">
+                        <!-- Dynamic content -->
+                    </div>
+                    <div class="add-prefix-form">
+                        <input type="text" id="new-prefix" placeholder="Enter new prefix..." maxlength="50">
+                        <button class="btn btn-secondary" id="add-prefix">Add Prefix</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Commands & Modules Tab -->
+            <section id="commands" class="tab-content">
+                <div class="command-categories">
+                    <div class="category-section">
+                        <h3>Modules</h3>
+                        <div class="module-toggles">
+                            <div class="toggle-item">
+                                <span>Economy</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" data-module="economy" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-item">
+                                <span>Fishing</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" data-module="fishing" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-item">
+                                <span>Gambling</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" data-module="gambling" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-item">
+                                <span>Moderation</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" data-module="moderation" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-item">
+                                <span>Fun</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" data-module="fun" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-item">
+                                <span>Utility</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" data-module="utility" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="category-section">
+                        <h3>Commands</h3>
+                        <div class="command-search">
+                            <input type="text" id="command-search" placeholder="Search commands...">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div class="command-list" id="command-toggles">
+                            <!-- Dynamic command list will be populated here -->
+                        </div>
+                    </div>
+
+                    <div class="category-section">
+                        <h3>Scope Settings</h3>
+                        <div class="scope-settings">
+                            <p>Configure command permissions for specific channels, roles, or users</p>
+                            <button class="btn btn-secondary" id="add-scope-rule">
+                                <i class="fas fa-plus"></i> Add Scope Rule
+                            </button>
+                            <div class="scope-rules" id="scope-rules-list">
+                                <!-- Dynamic scope rules -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Economy Management Tab -->
+            <section id="economy" class="tab-content">
+                <div class="economy-sections">
+                    <div class="section">
+                        <h3>User Economy Overview</h3>
+                        <div class="user-search">
+                            <input type="text" id="user-search" placeholder="Search users by ID or name...">
+                            <button class="btn btn-secondary" id="search-user">Search</button>
+                        </div>
+                        <div class="user-economy-result" id="user-economy-result">
+                            <!-- User economy data will be displayed here -->
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Guild Balances</h3>
+                        <div class="guild-balances">
+                            <div class="balance-item">
+                                <span>Current Balance:</span>
+                                <span class="balance-amount">$125,430</span>
+                                <button class="btn btn-sm btn-secondary" id="adjust-guild-balance">Adjust</button>
+                            </div>
+                            <div class="balance-item">
+                                <span>Total Donated:</span>
+                                <span class="balance-amount">$2,543,210</span>
+                            </div>
+                            <div class="balance-item">
+                                <span>Total Given:</span>
+                                <span class="balance-amount">$1,875,320</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Interest System</h3>
+                        <div class="interest-settings">
+                            <div class="setting-item">
+                                <label>Default Interest Rate (%)</label>
+                                <input type="number" id="default-interest-rate" value="1.00" step="0.01" min="0" max="100">
+                            </div>
+                            <div class="setting-item">
+                                <label>Maximum Interest Level</label>
+                                <input type="number" id="max-interest-level" value="10" min="0" max="50">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Shop & Marketplace Tab -->
+            <section id="shop" class="tab-content">
+                <div class="shop-sections">
+                    <div class="section">
+                        <h3>Shop Items</h3>
+                        <button class="btn btn-primary" id="add-shop-item">
+                            <i class="fas fa-plus"></i> Add New Item
+                        </button>
+                        <div class="shop-items-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Item ID</th>
+                                        <th>Name</th>
+                                        <th>Category</th>
+                                        <th>Price</th>
+                                        <th>Level</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="shop-items-tbody">
+                                    <!-- Dynamic shop items -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Daily Deals</h3>
+                        <div class="daily-deals-form">
+                            <div class="form-row">
+                                <select id="deal-item-select">
+                                    <option value="">Select item...</option>
+                                </select>
+                                <input type="number" id="deal-discount" placeholder="Discount %" min="1" max="99">
+                                <input type="number" id="deal-stock" placeholder="Stock (optional)">
+                                <button class="btn btn-secondary" id="add-daily-deal">Add Deal</button>
+                            </div>
+                        </div>
+                        <div class="active-deals" id="active-deals-list">
+                            <!-- Dynamic daily deals -->
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Bazaar Settings</h3>
+                        <div class="bazaar-settings">
+                            <div class="setting-item">
+                                <label>Stock Base Price</label>
+                                <input type="number" id="stock-base-price" value="100.00" step="0.01" min="0">
+                            </div>
+                            <div class="bazaar-stats">
+                                <div class="stat">
+                                    <span>Total Shareholders:</span>
+                                    <span id="total-shareholders">0</span>
+                                </div>
+                                <div class="stat">
+                                    <span>Total Shares Outstanding:</span>
+                                    <span id="total-shares">0</span>
+                                </div>
+                                <div class="stat">
+                                    <span>Recent Visitors (24h):</span>
+                                    <span id="recent-visitors">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Fishing System Tab -->
+            <section id="fishing" class="tab-content">
+                <div class="fishing-sections">
+                    <div class="section">
+                        <h3>Fishing Statistics</h3>
+                        <div class="fishing-stats-grid">
+                            <div class="stat-card">
+                                <h4>Total Fish Caught</h4>
+                                <p class="stat-number">45,231</p>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Most Valuable Catch</h4>
+                                <p class="stat-number">$2,543</p>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Legendary Fish</h4>
+                                <p class="stat-number">234</p>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Active Autofishers</h4>
+                                <p class="stat-number">156</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Fishing Gear Management</h3>
+                        <div class="gear-categories">
+                            <div class="gear-category">
+                                <h4>Rods</h4>
+                                <div class="gear-list" id="rods-list">
+                                    <!-- Dynamic rod list -->
+                                </div>
+                            </div>
+                            <div class="gear-category">
+                                <h4>Bait</h4>
+                                <div class="gear-list" id="bait-list">
+                                    <!-- Dynamic bait list -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Autofisher Settings</h3>
+                        <div class="autofisher-settings">
+                            <div class="setting-item">
+                                <label>Max Autofishers Per User</label>
+                                <input type="number" id="max-autofishers" value="30" min="1" max="100">
+                            </div>
+                            <div class="setting-item">
+                                <label>Default Bag Limit</label>
+                                <input type="number" id="default-bag-limit" value="10" min="1" max="1000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Machine Learning Logs</h3>
+                        <div class="ml-fishing-logs">
+                            <button class="btn btn-secondary" id="view-fishing-logs">View Profit Analysis</button>
+                            <button class="btn btn-secondary" id="download-fishing-data">Download Data</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Giveaways Tab -->
+            <section id="giveaways" class="tab-content">
+                <div class="giveaway-sections">
+                    <div class="section">
+                        <h3>Create Giveaway</h3>
+                        <div class="giveaway-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Prize Amount</label>
+                                    <input type="number" id="giveaway-prize" min="1" placeholder="Enter amount...">
+                                </div>
+                                <div class="form-group">
+                                    <label>Max Winners</label>
+                                    <input type="number" id="giveaway-winners" min="1" value="1">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Duration (hours)</label>
+                                    <input type="number" id="giveaway-duration" min="1" value="24">
+                                </div>
+                                <div class="form-group">
+                                    <label>Channel</label>
+                                    <select id="giveaway-channel">
+                                        <option value="">Select channel...</option>
+                                        <option value="123456789">#general</option>
+                                        <option value="987654321">#giveaways</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" id="create-giveaway">Create Giveaway</button>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Active Giveaways</h3>
+                        <div class="giveaways-list" id="active-giveaways">
+                            <!-- Dynamic giveaways list -->
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Giveaway History</h3>
+                        <div class="giveaway-history">
+                            <button class="btn btn-secondary" id="load-giveaway-history">Load History</button>
+                            <div class="history-list" id="giveaway-history-list">
+                                <!-- Dynamic history -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Moderation Tab -->
+            <section id="moderation" class="tab-content">
+                <div class="moderation-sections">
+                    <div class="section">
+                        <h3>Cooldown Management</h3>
+                        <div class="cooldown-settings">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Command</th>
+                                        <th>Cooldown (seconds)</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cooldown-settings-tbody">
+                                    <!-- Dynamic cooldown settings -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Autopurge Settings</h3>
+                        <button class="btn btn-primary" id="add-autopurge">
+                            <i class="fas fa-plus"></i> Add Autopurge Schedule
+                        </button>
+                        <div class="autopurge-list" id="autopurge-list">
+                            <!-- Dynamic autopurge schedules -->
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Global Lists</h3>
+                        <div class="global-lists">
+                            <div class="list-section">
+                                <h4>Blacklisted Users</h4>
+                                <div class="user-list" id="blacklist">
+                                    <!-- Dynamic blacklist -->
+                                </div>
+                                <div class="add-user-form">
+                                    <input type="text" id="blacklist-user-id" placeholder="User ID">
+                                    <button class="btn btn-secondary" id="add-blacklist">Add</button>
+                                </div>
+                            </div>
+                            <div class="list-section">
+                                <h4>Whitelisted Users</h4>
+                                <div class="user-list" id="whitelist">
+                                    <!-- Dynamic whitelist -->
+                                </div>
+                                <div class="add-user-form">
+                                    <input type="text" id="whitelist-user-id" placeholder="User ID">
+                                    <button class="btn btn-secondary" id="add-whitelist">Add</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reaction Roles Tab -->
+            <section id="reaction-roles" class="tab-content">
+                <div class="reaction-roles-sections">
+                    <div class="section">
+                        <h3>Add Reaction Role</h3>
+                        <div class="reaction-role-form">
+                            <div class="form-group">
+                                <label>Message ID</label>
+                                <input type="text" id="rr-message-id" placeholder="Enter message ID...">
+                            </div>
+                            <div class="form-group">
+                                <label>Channel ID</label>
+                                <input type="text" id="rr-channel-id" placeholder="Enter channel ID...">
+                            </div>
+                            <div class="form-group">
+                                <label>Emoji</label>
+                                <input type="text" id="rr-emoji" placeholder="Enter emoji...">
+                            </div>
+                            <div class="form-group">
+                                <label>Role ID</label>
+                                <input type="text" id="rr-role-id" placeholder="Enter role ID...">
+                            </div>
+                            <button class="btn btn-primary" id="add-reaction-role">Add Reaction Role</button>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Active Reaction Roles</h3>
+                        <div class="reaction-roles-list" id="reaction-roles-list">
+                            <!-- Dynamic reaction roles -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Statistics Tab -->
+            <section id="statistics" class="tab-content">
+                <div class="statistics-sections">
+                    <div class="section">
+                        <h3>Command Usage</h3>
+                        <div class="chart-container">
+                            <canvas id="command-usage-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Leaderboards</h3>
+                        <div class="leaderboard-tabs">
+                            <button class="tab-btn active" data-leaderboard="networth">Net Worth</button>
+                            <button class="tab-btn" data-leaderboard="wallet">Wallet</button>
+                            <button class="tab-btn" data-leaderboard="gambling">Gambling</button>
+                            <button class="tab-btn" data-leaderboard="fishing">Fishing</button>
+                        </div>
+                        <div class="leaderboard-content" id="leaderboard-content">
+                            <!-- Dynamic leaderboard -->
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>User Activity</h3>
+                        <div class="activity-stats">
+                            <div class="stat-item">
+                                <span>Active Users (24h):</span>
+                                <span>1,234</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>New Users (7d):</span>
+                                <span>456</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>Commands Used (24h):</span>
+                                <span>8,765</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ML Settings Tab -->
+            <section id="ml-settings" class="tab-content">
+                <div class="ml-sections">
+                    <div class="section">
+                        <h3>Machine Learning Configuration</h3>
+                        <div class="ml-settings-form">
+                            <div class="setting-group" id="ml-settings-list">
+                                <!-- Dynamic ML settings -->
+                            </div>
+                            <button class="btn btn-secondary" id="add-ml-setting">
+                                <i class="fas fa-plus"></i> Add Setting
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Price Change History</h3>
+                        <div class="price-changes">
+                            <div class="chart-container">
+                                <canvas id="price-changes-chart"></canvas>
+                            </div>
+                            <div class="price-changes-table">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Bait Level</th>
+                                            <th>Adjustment</th>
+                                            <th>Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="price-changes-tbody">
+                                        <!-- Dynamic price changes -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- User Management Tab -->
+            <section id="users" class="tab-content">
+                <div class="user-sections">
+                    <div class="section">
+                        <h3>User Search & Management</h3>
+                        <div class="user-search-form">
+                            <input type="text" id="user-management-search" placeholder="Search by User ID, username, or economy value...">
+                            <button class="btn btn-secondary" id="search-users">Search</button>
+                        </div>
+                        <div class="user-results" id="user-search-results">
+                            <!-- Dynamic user search results -->
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Suggestions</h3>
+                        <div class="suggestions-list" id="suggestions-list">
+                            <!-- Dynamic user suggestions -->
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Badge Management</h3>
+                        <div class="badge-management">
+                            <div class="user-badge-form">
+                                <input type="text" id="badge-user-id" placeholder="User ID">
+                                <select id="badge-type">
+                                    <option value="dev">Developer</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="is_mod">Moderator</option>
+                                    <option value="maintainer">Maintainer</option>
+                                    <option value="contributor">Contributor</option>
+                                    <option value="vip">VIP</option>
+                                </select>
+                                <button class="btn btn-secondary" id="grant-badge">Grant Badge</button>
+                                <button class="btn btn-danger" id="revoke-badge">Revoke Badge</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal" id="generic-modal">
+            <div class="modal-header">
+                <h3 id="modal-title">Modal Title</h3>
+                <button class="modal-close" id="modal-close">×</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Dynamic modal content -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="modal-confirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>

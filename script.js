@@ -365,27 +365,154 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     });
 });
 
-// Intersection Observer for fade-in animations
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-};
+// ═══════════════════════════════════════════════════════════════════
+//  PROFESSIONAL SCROLL ANIMATION SYSTEM
+// ═══════════════════════════════════════════════════════════════════
 
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
+(function initScrollAnimations() {
+    // ── 1. Hero parallax fade-out on scroll ──────────────────────────
+    const hero = document.querySelector('.hero');
+    if (hero) {
+        let ticking = false;
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    const rect = hero.getBoundingClientRect();
+                    const progress = Math.min(Math.max(-rect.top / (rect.height * 0.6), 0), 1);
+                    hero.style.setProperty('--scroll-progress', progress.toFixed(3));
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        }, { passive: true });
+    }
+
+    // ── 2. Auto-tag animatable elements with data-reveal ─────────────
+    //    Adds attributes if not manually set in HTML
+    document.querySelectorAll('.feature-card').forEach((el, i) => {
+        if (!el.hasAttribute('data-reveal')) {
+            el.setAttribute('data-reveal', 'up');
+            el.style.setProperty('--reveal-delay', `${i * 0.08}s`);
         }
     });
-}, observerOptions);
 
-document.querySelectorAll('.feature-card, .category, .stat-item').forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(20px)';
-    el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-    observer.observe(el);
-});
+    document.querySelectorAll('.category').forEach((el, i) => {
+        if (!el.hasAttribute('data-reveal')) {
+            el.setAttribute('data-reveal', i % 2 === 0 ? 'left' : 'right');
+            el.style.setProperty('--reveal-delay', `${i * 0.1}s`);
+        }
+    });
+
+    document.querySelectorAll('.stat-item').forEach((el, i) => {
+        if (!el.hasAttribute('data-reveal')) {
+            el.setAttribute('data-reveal', 'scale');
+            el.style.setProperty('--reveal-delay', `${i * 0.12}s`);
+        }
+    });
+
+    // Footer — use a separate observer with threshold:0 so it fires
+    // even at the very bottom of the page
+    const footerContent = document.querySelector('.footer-content');
+    if (footerContent) {
+        const footerObserver = new IntersectionObserver((entries, obs) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('revealed');
+                    obs.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0, rootMargin: '0px 0px 0px 0px' });
+        footerObserver.observe(footerContent);
+    }
+
+    // ── 3. Stagger delays for command items inside each category ─────
+    document.querySelectorAll('.category').forEach(cat => {
+        cat.querySelectorAll('.command-item').forEach((item, i) => {
+            item.style.animationDelay = `${0.15 + i * 0.04}s`;
+        });
+    });
+
+    // Tag footer links stagger
+    document.querySelectorAll('.footer-link').forEach((link, i) => {
+        link.style.animationDelay = `${i * 0.08}s`;
+    });
+
+    // ── 4. IntersectionObserver — reveal elements on scroll ──────────
+    const revealObserver = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('revealed');
+                // Don't unobserve — one-time reveal
+                obs.unobserve(entry.target);
+            }
+        });
+    }, {
+        threshold: 0.12,
+        rootMargin: '0px 0px -60px 0px'
+    });
+
+    document.querySelectorAll('[data-reveal]').forEach(el => {
+        revealObserver.observe(el);
+    });
+
+    // ── 5. Section line + title observer ─────────────────────────────
+    const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('section-visible');
+            }
+        });
+    }, {
+        threshold: 0.05,
+        rootMargin: '0px 0px -40px 0px'
+    });
+
+    document.querySelectorAll('.features, .commands, .stats').forEach(section => {
+        sectionObserver.observe(section);
+    });
+
+    // ── 6. Animated stat counters ────────────────────────────────────
+    function animateCounter(el, endText) {
+        // Parse numeric part — supports "50+", "24/7", "C++17", "8"
+        const match = endText.match(/^(\d+)/);
+        if (!match) {
+            el.textContent = endText;
+            return;
+        }
+        const endNum = parseInt(match[1], 10);
+        const suffix = endText.slice(match[0].length); // e.g. "+", "/7", ""
+        const duration = 1200;
+        const startTime = performance.now();
+
+        function tick(now) {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // Ease out cubic
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const current = Math.round(eased * endNum);
+            el.textContent = current + suffix;
+            if (progress < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+    }
+
+    const statValues = document.querySelectorAll('.stat-value');
+    const originalTexts = new Map();
+    statValues.forEach(el => originalTexts.set(el, el.textContent.trim()));
+
+    const counterObserver = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const el = entry.target;
+                const text = originalTexts.get(el);
+                if (text) animateCounter(el, text);
+                obs.unobserve(el);
+            }
+        });
+    }, { threshold: 0.5 });
+
+    statValues.forEach(el => counterObserver.observe(el));
+})();
 
 // Check authentication status and update login button
 async function checkAuthAndUpdateButton() {

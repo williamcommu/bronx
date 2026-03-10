@@ -97,6 +97,16 @@ async function initDatabase() {
         await db.execute('SELECT 1');
         console.log('Connected to MariaDB database (pool)');
 
+        // Keep-alive ping to prevent Aiven from powering off due to inactivity
+        setInterval(async () => {
+            try {
+                await db.execute('SELECT 1');
+                console.log('[Keep-alive] Database ping successful');
+            } catch (err) {
+                console.error('[Keep-alive] Database ping failed:', err.message);
+            }
+        }, 45000); // Ping every 45 seconds
+
         // Auto-create dashboard-specific tables if missing
         await db.execute(`CREATE TABLE IF NOT EXISTS command_scope_rules (
             id INT AUTO_INCREMENT PRIMARY KEY,

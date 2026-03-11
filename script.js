@@ -548,6 +548,13 @@ async function checkAuthAndUpdateButton() {
                 loginBtn.href = '/dashboard.html';
                 loginBtn.classList.remove('btn-secondary');
                 loginBtn.classList.add('btn-primary');
+
+                // Also update nav login button
+                const navLoginBtn = document.getElementById('nav-login-btn');
+                if (navLoginBtn) {
+                    navLoginBtn.innerHTML = '<i class="fas fa-tachometer-alt"></i> dashboard';
+                    navLoginBtn.href = '/dashboard.html';
+                }
             }
         }
     } catch (error) {

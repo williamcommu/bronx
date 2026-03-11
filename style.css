@@ -151,6 +151,25 @@ body {
     transform: translateY(-1px);
 }
 
+.nav-btn-secondary {
+    background: transparent !important;
+    border: 1px solid var(--glass-border) !important;
+    color: var(--fg) !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.nav-btn-secondary i {
+    font-size: 1rem;
+    color: #7289da;
+}
+
+.nav-btn-secondary:hover {
+    background: rgba(114, 137, 218, 0.15) !important;
+    border-color: rgba(114, 137, 218, 0.4) !important;
+}
+
 /* ═══════════════════════════════════════════════════════
    PARTICLE CANVAS
    ═══════════════════════════════════════════════════════ */

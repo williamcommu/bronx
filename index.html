@@ -36,8 +36,22 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Floating Nav -->
+    <nav class="floating-nav" id="floatingNav">
+        <div class="floating-nav-inner">
+            <a href="#" class="nav-brand">bronx</a>
+            <div class="nav-links">
+                <a href="#features">features</a>
+                <a href="#commands">commands</a>
+                <a href="#" id="nav-invite-btn" class="nav-btn">invite</a>
+            </div>
+        </div>
+    </nav>
+
     <!-- Hero Section -->
     <section class="hero">
+        <!-- Particle canvas -->
+        <canvas id="particleCanvas" class="particle-canvas"></canvas>
         <!-- Parallax background layers -->
         <div class="hero-bg">
             <div class="hero-gradient"></div>
@@ -52,7 +66,7 @@
         <div class="container">
             <div class="hero-content">
                 <h1 class="logo">bronx</h1>
-                <p class="tagline">a discord bot</p>
+                <p class="tagline" id="tagline"></p>
                 <div class="cta-group">
                     <a href="#" class="btn btn-primary" id="invite-btn">invite bronx</a>
                     <a href="/login" class="btn btn-secondary" id="login-btn">log in</a>
@@ -142,7 +156,7 @@
             <div class="command-categories">
                 
                 <!-- Economy Commands -->
-                <div class="category">
+                <div class="category" id="cat-economy">
                     <div class="category-header">
                         <span class="category-icon"><i class="fas fa-coins"></i></span>
                         <h3 class="category-name">economy</h3>
@@ -192,7 +206,7 @@
                 </div>
 
                 <!-- Gambling Commands -->
-                <div class="category">
+                <div class="category" id="cat-gambling">
                     <div class="category-header">
                         <span class="category-icon"><i class="fas fa-dice"></i></span>
                         <h3 class="category-name">gambling</h3>
@@ -241,7 +255,7 @@
                 </div>
 
                 <!-- Fishing Commands -->
-                <div class="category">
+                <div class="category" id="cat-fishing">
                     <div class="category-header">
                         <span class="category-icon"><i class="fas fa-fish"></i></span>
                         <h3 class="category-name">fishing</h3>
@@ -281,7 +295,7 @@
                 </div>
 
                 <!-- Shop & Trading -->
-                <div class="category">
+                <div class="category" id="cat-marketplace">
                     <div class="category-header">
                         <span class="category-icon"><i class="fas fa-store"></i></span>
                         <h3 class="category-name">marketplace</h3>
@@ -309,7 +323,7 @@
                 </div>
 
                 <!-- Utility Commands -->
-                <div class="category">
+                <div class="category" id="cat-utility">
                     <div class="category-header">
                         <span class="category-icon"><i class="fas fa-tools"></i></span>
                         <h3 class="category-name">utility</h3>
@@ -380,7 +394,7 @@
                 </div>
 
                 <!-- Games Commands -->
-                <div class="category">
+                <div class="category" id="cat-games">
                     <div class="category-header">
                         <span class="category-icon"><i class="fas fa-gamepad"></i></span>
                         <h3 class="category-name">games</h3>
@@ -395,7 +409,7 @@
                 </div>
 
                 <!-- Fun Commands -->
-                <div class="category">
+                <div class="category" id="cat-social">
                     <div class="category-header">
                         <span class="category-icon"><i class="fas fa-heart"></i></span>
                         <h3 class="category-name">social</h3>
@@ -417,7 +431,7 @@
                 </div>
 
                 <!-- Leaderboards -->
-                <div class="category">
+                <div class="category" id="cat-leaderboards">
                     <div class="category-header">
                         <span class="category-icon"><i class="fas fa-trophy"></i></span>
                         <h3 class="category-name">leaderboards</h3>

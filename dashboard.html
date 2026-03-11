@@ -58,38 +58,80 @@
                 <li class="menu-item active" data-tab="overview">
                     <i class="fas fa-chart-line"></i> Overview
                 </li>
-                <li class="menu-item" data-tab="guild-settings">
-                    <i class="fas fa-cog"></i> Guild Settings
+                
+                <!-- Server Config (collapsible) -->
+                <li class="menu-category">
+                    <span class="category-header" data-collapse="config">
+                        <i class="fas fa-chevron-down collapse-icon"></i> Server Config
+                    </span>
+                    <ul class="category-items" id="config-items">
+                        <li class="menu-item" data-tab="guild-settings">
+                            <i class="fas fa-cog"></i> Settings
+                        </li>
+                        <li class="menu-item" data-tab="commands">
+                            <i class="fas fa-terminal"></i> Commands & Modules
+                        </li>
+                        <li class="menu-item" data-tab="reaction-roles">
+                            <i class="fas fa-smile"></i> Reaction Roles
+                        </li>
+                    </ul>
                 </li>
-                <li class="menu-item" data-tab="commands">
-                    <i class="fas fa-terminal"></i> Commands & Modules
+                
+                <!-- Economy Section -->
+                <li class="menu-category">
+                    <span class="category-header" data-collapse="economy-section">
+                        <i class="fas fa-chevron-down collapse-icon"></i> Economy
+                    </span>
+                    <ul class="category-items" id="economy-section-items">
+                        <li class="menu-item" data-tab="economy">
+                            <i class="fas fa-coins"></i> Balance & Treasury
+                        </li>
+                        <li class="menu-item" data-tab="shop">
+                            <i class="fas fa-store"></i> Shop & Marketplace
+                        </li>
+                        <li class="menu-item" data-tab="giveaways">
+                            <i class="fas fa-gift"></i> Giveaways
+                        </li>
+                        <li class="menu-item" data-tab="leaderboards">
+                            <i class="fas fa-trophy"></i> Leaderboards
+                        </li>
+                    </ul>
                 </li>
-                <li class="menu-item" data-tab="economy">
-                    <i class="fas fa-coins"></i> Economy Management
+                
+                <!-- Moderation Section -->
+                <li class="menu-category">
+                    <span class="category-header" data-collapse="mod-section">
+                        <i class="fas fa-chevron-down collapse-icon"></i> Moderation
+                    </span>
+                    <ul class="category-items" id="mod-section-items">
+                        <li class="menu-item" data-tab="moderation">
+                            <i class="fas fa-shield-alt"></i> Mod Tools
+                        </li>
+                        <li class="menu-item" data-tab="users">
+                            <i class="fas fa-users"></i> User Management
+                        </li>
+                        <li class="menu-item" data-tab="mod-logs">
+                            <i class="fas fa-clipboard-list"></i> Mod Logs
+                        </li>
+                    </ul>
                 </li>
-                <li class="menu-item" data-tab="shop">
-                    <i class="fas fa-store"></i> Shop & Marketplace
-                </li>
-                <li class="menu-item" data-tab="fishing">
-                    <i class="fas fa-fish"></i> Fishing System
-                </li>
-                <li class="menu-item" data-tab="giveaways">
-                    <i class="fas fa-gift"></i> Giveaways
-                </li>
-                <li class="menu-item" data-tab="moderation">
-                    <i class="fas fa-shield-alt"></i> Moderation
-                </li>
-                <li class="menu-item" data-tab="reaction-roles">
-                    <i class="fas fa-smile"></i> Reaction Roles
-                </li>
-                <li class="menu-item" data-tab="statistics">
-                    <i class="fas fa-chart-bar"></i> Statistics
-                </li>
-                <li class="menu-item" data-tab="ml-settings">
-                    <i class="fas fa-brain"></i> ML Settings
-                </li>
-                <li class="menu-item" data-tab="users">
-                    <i class="fas fa-users"></i> User Management
+                
+                <!-- Stats Section -->
+                <li class="menu-category">
+                    <span class="category-header" data-collapse="stats-section">
+                        <i class="fas fa-chevron-down collapse-icon"></i> Statistics
+                    </span>
+                    <ul class="category-items" id="stats-section-items">
+                        <li class="menu-item" data-tab="statistics">
+                            <i class="fas fa-chart-bar"></i> Command Usage
+                        </li>
+                        <li class="menu-item" data-tab="activity">
+                            <i class="fas fa-users-cog"></i> Member Activity
+                        </li>
+                        <li class="menu-item" data-tab="fishing">
+                            <i class="fas fa-fish"></i> Fishing Stats
+                        </li>
+                    </ul>
                 </li>
             </ul>
         </nav>
@@ -817,6 +859,116 @@
                                 <button class="btn btn-secondary" id="grant-badge">Grant Badge</button>
                                 <button class="btn btn-danger" id="revoke-badge">Revoke Badge</button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Leaderboards Tab -->
+            <section id="leaderboards" class="tab-content">
+                <div class="section">
+                    <h3><i class="fas fa-trophy"></i> Server Leaderboards</h3>
+                    <div class="leaderboard-controls">
+                        <select id="leaderboard-type" class="leaderboard-select">
+                            <option value="coins">Coins</option>
+                            <option value="xp">XP Level</option>
+                            <option value="messages">Messages</option>
+                            <option value="fishing">Fishing XP</option>
+                            <option value="mining">Mining XP</option>
+                        </select>
+                        <button class="btn btn-secondary" id="refresh-leaderboard">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="leaderboard-table" id="leaderboard-data">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>User</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-body">
+                                <!-- Dynamic leaderboard data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Mod Logs Tab -->
+            <section id="mod-logs" class="tab-content">
+                <div class="section">
+                    <h3><i class="fas fa-clipboard-list"></i> Moderation Logs</h3>
+                    <div class="mod-log-filters">
+                        <select id="mod-log-action" class="filter-select">
+                            <option value="">All Actions</option>
+                            <option value="warn">Warns</option>
+                            <option value="kick">Kicks</option>
+                            <option value="ban">Bans</option>
+                            <option value="mute">Mutes</option>
+                            <option value="timeout">Timeouts</option>
+                        </select>
+                        <input type="text" id="mod-log-user" placeholder="Filter by user ID...">
+                        <button class="btn btn-secondary" id="filter-mod-logs">
+                            <i class="fas fa-filter"></i> Filter
+                        </button>
+                    </div>
+                    <div class="mod-logs-list" id="mod-logs-data">
+                        <!-- Dynamic mod log entries -->
+                    </div>
+                    <div class="mod-stats-summary">
+                        <div class="mod-stat-card">
+                            <span class="stat-label">Total Warns</span>
+                            <span class="stat-value" id="total-warns">0</span>
+                        </div>
+                        <div class="mod-stat-card">
+                            <span class="stat-label">Total Bans</span>
+                            <span class="stat-value" id="total-bans">0</span>
+                        </div>
+                        <div class="mod-stat-card">
+                            <span class="stat-label">Total Timeouts</span>
+                            <span class="stat-value" id="total-timeouts">0</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Activity Tab -->
+            <section id="activity" class="tab-content">
+                <div class="section">
+                    <h3><i class="fas fa-users-cog"></i> Member Activity</h3>
+                    <div class="activity-charts">
+                        <div class="chart-container">
+                            <h4>Messages per Day (Last 7 Days)</h4>
+                            <canvas id="activity-messages-chart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <h4>Active Users per Day</h4>
+                            <canvas id="activity-users-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="activity-stats">
+                        <div class="activity-stat-card">
+                            <i class="fas fa-user-clock"></i>
+                            <span class="stat-value" id="daily-active-users">0</span>
+                            <span class="stat-label">Daily Active Users</span>
+                        </div>
+                        <div class="activity-stat-card">
+                            <i class="fas fa-comments"></i>
+                            <span class="stat-value" id="messages-today">0</span>
+                            <span class="stat-label">Messages Today</span>
+                        </div>
+                        <div class="activity-stat-card">
+                            <i class="fas fa-user-plus"></i>
+                            <span class="stat-value" id="new-members-week">0</span>
+                            <span class="stat-label">New Members (7d)</span>
+                        </div>
+                        <div class="activity-stat-card">
+                            <i class="fas fa-terminal"></i>
+                            <span class="stat-value" id="commands-today">0</span>
+                            <span class="stat-label">Commands Today</span>
                         </div>
                     </div>
                 </div>

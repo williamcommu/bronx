@@ -324,13 +324,35 @@ document.addEventListener('DOMContentLoaded', function() {
         item.addEventListener('click', () => openModal(commandName));
     });
 
-    // Add click handlers to feature cards to scroll to commands
+    // Add click handlers to feature cards to scroll to matching command category
+    const featureToCategoryMap = {
+        'economy': 'cat-economy',
+        'gambling': 'cat-gambling',
+        'fishing': 'cat-fishing',
+        'shop & trading': 'cat-marketplace',
+        'leaderboards': 'cat-leaderboards',
+        'utilities': 'cat-utility',
+        'social': 'cat-social',
+        'games': 'cat-games',
+        'performance': 'commands' // no matching category, scroll to section
+    };
+
     document.querySelectorAll('.feature-card').forEach(card => {
+        const title = card.querySelector('.feature-title').textContent.trim().toLowerCase();
+        const targetId = featureToCategoryMap[title] || 'commands';
         card.addEventListener('click', () => {
-            document.getElementById('commands').scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
+            const target = document.getElementById(targetId);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Quick highlight flash
+                if (targetId !== 'commands') {
+                    target.style.transition = 'box-shadow 0.3s ease';
+                    target.style.boxShadow = '0 0 0 2px var(--accent), 0 16px 48px rgba(0,0,0,0.25)';
+                    setTimeout(() => {
+                        target.style.boxShadow = '';
+                    }, 1500);
+                }
+            }
         });
     });
 
@@ -396,10 +418,10 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         }
     });
 
-    document.querySelectorAll('.category').forEach((el, i) => {
+    // Categories — no slide animation, just fade in
+    document.querySelectorAll('.category').forEach((el) => {
         if (!el.hasAttribute('data-reveal')) {
-            el.setAttribute('data-reveal', i % 2 === 0 ? 'left' : 'right');
-            el.style.setProperty('--reveal-delay', `${i * 0.1}s`);
+            el.setAttribute('data-reveal', 'fade');
         }
     });
 
@@ -425,12 +447,7 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         footerObserver.observe(footerContent);
     }
 
-    // ── 3. Stagger delays for command items inside each category ─────
-    document.querySelectorAll('.category').forEach(cat => {
-        cat.querySelectorAll('.command-item').forEach((item, i) => {
-            item.style.animationDelay = `${0.15 + i * 0.04}s`;
-        });
-    });
+    // ── 3. (Command item stagger removed) ──────────────────────────
 
     // Tag footer links stagger
     document.querySelectorAll('.footer-link').forEach((link, i) => {
@@ -542,4 +559,216 @@ async function checkAuthAndUpdateButton() {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     checkAuthAndUpdateButton();
+    initTypingEffect();
+    initParticles();
+    initFloatingNav();
 });
+
+// ═══════════════════════════════════════════════════════════════════
+//  TYPING EFFECT
+// ═══════════════════════════════════════════════════════════════════
+function initTypingEffect() {
+    const tagline = document.getElementById('tagline');
+    if (!tagline) return;
+
+    const phrases = [
+        'a discord bot',
+        'economy & gambling',
+        'built with C++',
+        'fishing & trading',
+        'fast & reliable'
+    ];
+
+    let phraseIndex = 0;
+    let charIndex = 0;
+    let isDeleting = false;
+
+    // Add cursor element
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    tagline.appendChild(cursor);
+
+    function type() {
+        const current = phrases[phraseIndex];
+
+        if (!isDeleting) {
+            tagline.textContent = current.substring(0, charIndex + 1);
+            tagline.appendChild(cursor);
+            charIndex++;
+
+            if (charIndex === current.length) {
+                isDeleting = true;
+                setTimeout(type, 2000); // Pause before deleting
+                return;
+            }
+            setTimeout(type, 70 + Math.random() * 40);
+        } else {
+            tagline.textContent = current.substring(0, charIndex - 1);
+            tagline.appendChild(cursor);
+            charIndex--;
+
+            if (charIndex === 0) {
+                isDeleting = false;
+                phraseIndex = (phraseIndex + 1) % phrases.length;
+                setTimeout(type, 400);
+                return;
+            }
+            setTimeout(type, 35);
+        }
+    }
+
+    // Start after hero animation
+    setTimeout(type, 1200);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  SPARKLE PARTICLE SYSTEM
+// ═══════════════════════════════════════════════════════════════════
+function initParticles() {
+    const canvas = document.getElementById('particleCanvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let animationId;
+
+    function resize() {
+        const hero = canvas.parentElement;
+        canvas.width = hero.offsetWidth;
+        canvas.height = hero.offsetHeight;
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+
+    class Particle {
+        constructor() {
+            this.reset();
+        }
+
+        reset() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.size = Math.random() * 2 + 0.5;
+            this.speedX = (Math.random() - 0.5) * 0.3;
+            this.speedY = (Math.random() - 0.5) * 0.3;
+            this.opacity = Math.random() * 0.5 + 0.1;
+            this.fadeSpeed = Math.random() * 0.008 + 0.002;
+            this.growing = Math.random() > 0.5;
+            // Color: mix of accent purple and blue
+            const hue = 220 + Math.random() * 40; // blue-purple range
+            this.color = `hsla(${hue}, 60%, 75%, `;
+        }
+
+        update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+
+            if (this.growing) {
+                this.opacity += this.fadeSpeed;
+                if (this.opacity >= 0.6) this.growing = false;
+            } else {
+                this.opacity -= this.fadeSpeed;
+                if (this.opacity <= 0) this.reset();
+            }
+
+            // Wrap around
+            if (this.x < 0) this.x = canvas.width;
+            if (this.x > canvas.width) this.x = 0;
+            if (this.y < 0) this.y = canvas.height;
+            if (this.y > canvas.height) this.y = 0;
+        }
+
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fillStyle = this.color + this.opacity.toFixed(3) + ')';
+            ctx.fill();
+        }
+    }
+
+    // Create particles (fewer on mobile)
+    const count = window.innerWidth < 768 ? 40 : 80;
+    for (let i = 0; i < count; i++) {
+        particles.push(new Particle());
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        particles.forEach(p => {
+            p.update();
+            p.draw();
+        });
+
+        // Draw faint connections between nearby particles
+        for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+                const dx = particles[i].x - particles[j].x;
+                const dy = particles[i].y - particles[j].y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 120) {
+                    const alpha = (1 - dist / 120) * 0.08;
+                    ctx.beginPath();
+                    ctx.moveTo(particles[i].x, particles[i].y);
+                    ctx.lineTo(particles[j].x, particles[j].y);
+                    ctx.strokeStyle = `rgba(180, 167, 214, ${alpha})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                }
+            }
+        }
+
+        animationId = requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    // Pause when hero is out of view
+    const heroObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                if (!animationId) animate();
+            } else {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        });
+    }, { threshold: 0 });
+    heroObserver.observe(canvas.parentElement);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  FLOATING NAV BAR
+// ═══════════════════════════════════════════════════════════════════
+function initFloatingNav() {
+    const nav = document.getElementById('floatingNav');
+    if (!nav) return;
+
+    const hero = document.querySelector('.hero');
+    let lastScroll = 0;
+
+    // Nav invite button
+    const navInviteBtn = document.getElementById('nav-invite-btn');
+    if (navInviteBtn) {
+        navInviteBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const permissions = '7610260541407217';
+            const inviteUrl = `https://discord.com/oauth2/authorize?client_id=828380019406929962&permissions=${permissions}&integration_type=0&scope=bot+applications.commands`;
+            window.open(inviteUrl, '_blank');
+        });
+    }
+
+    window.addEventListener('scroll', () => {
+        const heroBottom = hero ? hero.offsetHeight * 0.7 : 300;
+        const currentScroll = window.scrollY;
+
+        if (currentScroll > heroBottom) {
+            nav.classList.add('visible');
+        } else {
+            nav.classList.remove('visible');
+        }
+
+        lastScroll = currentScroll;
+    }, { passive: true });
+}

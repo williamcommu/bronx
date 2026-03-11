@@ -10,6 +10,22 @@ const http = require('http');
 const socketIo = require('socket.io');
 require('dotenv').config();
 
+// Custom modules
+const { cache, CacheTTL } = require('./cache');
+const { rateLimiters } = require('./rateLimit');
+const { 
+    securityHeaders, 
+    initCsrfToken, 
+    csrfProtection, 
+    getCsrfToken,
+    requireAuth, 
+    requireGuildAccess,
+    sanitizeBody,
+    securityLogger,
+    validateSnowflake,
+    isValidSnowflake
+} = require('./security');
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
@@ -51,10 +67,86 @@ app.use(session({
     }
 }));
 
+// Security middleware
+app.use(securityHeaders);
+app.use(initCsrfToken);
+app.use(sanitizeBody);
+app.use(securityLogger);
+
+// Rate limiting for API routes
+app.use('/api/', rateLimiters.api);
+
+// CSRF token endpoint (exempted from CSRF check)
+app.get('/api/csrf-token', getCsrfToken);
+
 // Database configuration - will be loaded in initDatabase()
 let dbConfig;
 
 let db;
+
+// Database health tracking
+let dbHealthy = true;
+let dbFailCount = 0;
+const MAX_FAIL_COUNT = 5;
+
+// Execute database query with retry and exponential backoff
+async function dbQuery(query, params = [], retries = 3) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const result = await db.execute(query, params);
+            dbHealthy = true;
+            dbFailCount = 0;
+            return result;
+        } catch (error) {
+            dbFailCount++;
+            
+            // Check if it's a connection error
+            const isConnectionError = ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'PROTOCOL_CONNECTION_LOST', 'ER_CON_COUNT_ERROR'].some(
+                code => error.code === code || error.message?.includes(code)
+            );
+            
+            if (isConnectionError && attempt < retries) {
+                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+                console.error(`[DB] Query failed (attempt ${attempt}/${retries}), retrying in ${delay}ms:`, error.message);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+            
+            if (dbFailCount >= MAX_FAIL_COUNT) {
+                dbHealthy = false;
+                console.error('[DB] Database marked as unhealthy after multiple failures');
+            }
+            
+            throw error;
+        }
+    }
+}
+
+// Health check endpoint
+app.get('/api/health', async (req, res) => {
+    try {
+        if (!dbHealthy) {
+            // Try to reconnect
+            await db.execute('SELECT 1');
+            dbHealthy = true;
+            dbFailCount = 0;
+        }
+        
+        res.json({
+            status: 'healthy',
+            database: dbHealthy ? 'connected' : 'degraded',
+            cache: cache.getStats().connected ? 'redis' : 'memory',
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(503).json({
+            status: 'degraded',
+            database: 'disconnected',
+            cache: cache.getStats().connected ? 'redis' : 'memory',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
 
 // Initialize database connection
 async function initDatabase() {
@@ -282,34 +374,6 @@ function getUserPermissions(userGuild) {
         canManage: (permissions & 0x20) !== 0, // MANAGE_GUILD permission
         canAdmin: (permissions & 0x8) !== 0    // ADMINISTRATOR permission
     };
-}
-
-// Authentication middleware
-function requireAuth(req, res, next) {
-    if (!req.session.user) {
-        return res.status(401).json({ error: 'Authentication required' });
-    }
-    next();
-}
-
-function requireGuildAccess(req, res, next) {
-    const guildId = req.params.guildId || req.body.guildId || req.query.guildId;
-    
-    if (!guildId) {
-        return res.status(400).json({ error: 'Guild ID required' });
-    }
-    
-    if (!req.session.user || !req.session.accessibleGuilds) {
-        return res.status(401).json({ error: 'Authentication required' });
-    }
-    
-    const hasAccess = req.session.accessibleGuilds.some(guild => guild.id === guildId);
-    if (!hasAccess) {
-        return res.status(403).json({ error: 'Access denied to this server' });
-    }
-    
-    req.guildId = guildId;
-    next();
 }
 
 // OAuth2 Routes
@@ -905,20 +969,21 @@ app.get('/api/guild/settings', async (req, res) => {
             return;
         }
 
-        const [settings] = await db.execute(
-            'SELECT * FROM guild_settings WHERE guild_id = ?',
-            [req.guildId]
-        );
-
-        if (settings.length === 0) {
-            res.json({
+        // Try cache first
+        const cacheKey = cache.key('guild', 'settings', req.guildId);
+        const settings = await cache.getOrSet(cacheKey, async () => {
+            const [rows] = await db.execute(
+                'SELECT * FROM guild_settings WHERE guild_id = ?',
+                [req.guildId]
+            );
+            return rows[0] || {
                 prefix: 'bb ',
                 logging_enabled: false,
                 logging_channel: null
-            });
-        } else {
-            res.json(settings[0]);
-        }
+            };
+        }, CacheTTL.GUILD_SETTINGS);
+
+        res.json(settings);
     } catch (error) {
         console.error('Guild settings error:', error);
         res.status(500).json({ error: 'Failed to fetch guild settings' });
@@ -942,6 +1007,9 @@ app.put('/api/guild/settings', async (req, res) => {
             logging_enabled = VALUES(logging_enabled),
             logging_channel = VALUES(logging_channel)
         `, [req.guildId, prefix, logging_enabled, logging_channel]);
+
+        // Invalidate cache
+        await cache.del(cache.key('guild', 'settings', req.guildId));
 
         res.json({ success: true });
     } catch (error) {
@@ -2265,6 +2333,10 @@ app.use((error, req, res, next) => {
 
 // Start server
 async function startServer() {
+    // Initialize cache (Redis with in-memory fallback)
+    await cache.connect();
+    cache.startCleanup();
+    
     await initDatabase();
     
     // Initialize real-time monitoring
@@ -2274,6 +2346,7 @@ async function startServer() {
         console.log(`Dashboard server running on port ${PORT}`);
         console.log(`Access dashboard at: http://localhost:${PORT}`);
         console.log(`WebSocket server ready for real-time updates`);
+        console.log(`Cache: ${cache.getStats().connected ? 'Redis' : 'In-Memory'}`);
     });
 }
 

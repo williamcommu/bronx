@@ -463,6 +463,18 @@ class BronxBotDashboard {
             });
         });
 
+        // Category collapse/expand
+        document.querySelectorAll('.category-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const collapseId = header.getAttribute('data-collapse');
+                const items = document.getElementById(`${collapseId}-items`);
+                if (items) {
+                    header.classList.toggle('collapsed');
+                    items.classList.toggle('collapsed');
+                }
+            });
+        });
+
         // Server selector — custom dropdown
         document.addEventListener('click', (e) => {
             const trigger = document.getElementById('server-dropdown-trigger');

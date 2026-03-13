@@ -79,29 +79,55 @@ router.get('/api/stats/overview', async (req, res) => {
         let commandsToday = [{ count: 0 }];
         let fishToday = [{ count: 0 }];
 
+        // Economy value: try server_users first, fall back to global users table
         try {
             const [ev] = await db.execute(
                 'SELECT COALESCE(SUM(wallet + bank), 0) as total FROM server_users WHERE guild_id = ?',
                 [guildId]
             );
             economyValue = ev;
-        } catch (e) { console.warn('economy value query failed:', e.message); }
+        } catch (e) {
+            try {
+                const [ev] = await db.execute(
+                    'SELECT COALESCE(SUM(wallet + bank), 0) as total FROM users'
+                );
+                economyValue = ev;
+            } catch (e2) { console.warn('economy value query failed:', e2.message); }
+        }
 
+        // Commands today: try server_command_stats first, fall back to guild_command_usage (replicated to Aiven)
         try {
             const [guildCmds] = await db.execute(
                 'SELECT COUNT(*) as count FROM server_command_stats WHERE guild_id = ? AND used_at >= CURDATE()',
                 [guildId]
             );
             commandsToday = guildCmds;
-        } catch (e) { console.warn('commands today query failed:', e.message); }
+        } catch (e) {
+            try {
+                const [guildCmds] = await db.execute(
+                    'SELECT COALESCE(SUM(use_count), 0) as count FROM guild_command_usage WHERE guild_id = ? AND usage_date = CURDATE()',
+                    [guildId]
+                );
+                commandsToday = guildCmds;
+            } catch (e2) { console.warn('commands today query failed:', e2.message); }
+        }
 
+        // Fish today: try server_fish_catches first, fall back to fish_catches
         try {
             const [guildFish] = await db.execute(
                 'SELECT COUNT(*) as count FROM server_fish_catches WHERE guild_id = ? AND caught_at >= CURDATE()',
                 [guildId]
             );
             fishToday = guildFish;
-        } catch (e) { console.warn('fish today query failed:', e.message); }
+        } catch (e) {
+            try {
+                const [guildFish] = await db.execute(
+                    'SELECT COUNT(*) as count FROM fish_catches WHERE guild_id = ? AND caught_at >= CURDATE()',
+                    [guildId]
+                );
+                fishToday = guildFish;
+            } catch (e2) { console.warn('fish today query failed:', e2.message); }
+        }
 
         res.json({
             memberCount,

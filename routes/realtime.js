@@ -137,24 +137,57 @@ async function getRealtimeStats() {
 async function getGuildRealtimeStats(guildId) {
     try {
         const db = getDb();
-        const [[economyValue]] = await db.execute(
-            'SELECT COALESCE(SUM(wallet + bank), 0) as total FROM server_users WHERE guild_id = ?',
-            [guildId]
-        );
 
+        // Economy value: try server_users, fall back to global users
+        let economyValue = { total: 0 };
+        try {
+            const [[ev]] = await db.execute(
+                'SELECT COALESCE(SUM(wallet + bank), 0) as total FROM server_users WHERE guild_id = ?',
+                [guildId]
+            );
+            economyValue = ev;
+        } catch (e) {
+            try {
+                const [[ev]] = await db.execute('SELECT COALESCE(SUM(wallet + bank), 0) as total FROM users');
+                economyValue = ev;
+            } catch (e2) { /* ignore */ }
+        }
+
+        // Commands today: try server_command_stats, fall back to guild_command_usage (replicated)
         let commandsToday = { count: 0 };
-        const [[guildCmds]] = await db.execute(
-            'SELECT COUNT(*) as count FROM server_command_stats WHERE guild_id = ? AND used_at >= CURDATE()',
-            [guildId]
-        );
-        commandsToday = guildCmds;
+        try {
+            const [[guildCmds]] = await db.execute(
+                'SELECT COUNT(*) as count FROM server_command_stats WHERE guild_id = ? AND used_at >= CURDATE()',
+                [guildId]
+            );
+            commandsToday = guildCmds;
+        } catch (e) {
+            try {
+                const [[guildCmds]] = await db.execute(
+                    'SELECT COALESCE(SUM(use_count), 0) as count FROM guild_command_usage WHERE guild_id = ? AND usage_date = CURDATE()',
+                    [guildId]
+                );
+                commandsToday = guildCmds;
+            } catch (e2) { /* ignore */ }
+        }
 
+        // Fish today: try server_fish_catches, fall back to fish_catches
         let fishToday = { count: 0 };
-        const [[guildFish]] = await db.execute(
-            'SELECT COUNT(*) as count FROM server_fish_catches WHERE guild_id = ? AND caught_at >= CURDATE()',
-            [guildId]
-        );
-        fishToday = guildFish;
+        try {
+            const [[guildFish]] = await db.execute(
+                'SELECT COUNT(*) as count FROM server_fish_catches WHERE guild_id = ? AND caught_at >= CURDATE()',
+                [guildId]
+            );
+            fishToday = guildFish;
+        } catch (e) {
+            try {
+                const [[guildFish]] = await db.execute(
+                    'SELECT COUNT(*) as count FROM fish_catches WHERE guild_id = ? AND caught_at >= CURDATE()',
+                    [guildId]
+                );
+                fishToday = guildFish;
+            } catch (e2) { /* ignore */ }
+        }
 
         return {
             guildId,

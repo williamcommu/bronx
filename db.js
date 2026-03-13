@@ -206,7 +206,7 @@ async function initDatabase() {
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             guild_id BIGINT UNSIGNED NOT NULL,
             user_id BIGINT UNSIGNED NOT NULL,
-            event_type ENUM('join','leave') NOT NULL,
+            event_type VARCHAR(16) NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_guild_type (guild_id, event_type),
             INDEX idx_guild_date (guild_id, created_at)
@@ -217,12 +217,16 @@ async function initDatabase() {
             guild_id BIGINT UNSIGNED NOT NULL,
             user_id BIGINT UNSIGNED NOT NULL,
             channel_id BIGINT UNSIGNED NOT NULL,
-            event_type ENUM('message','edit','delete') NOT NULL,
+            event_type VARCHAR(16) NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_guild_type (guild_id, event_type),
             INDEX idx_guild_date (guild_id, created_at),
             INDEX idx_guild_user (guild_id, user_id)
         ) ENGINE=InnoDB`);
+
+        // Migration: convert ENUM event_type columns to VARCHAR(16) for compatibility with bot
+        try { await db.execute('ALTER TABLE guild_member_events MODIFY COLUMN event_type VARCHAR(16) NOT NULL'); } catch (e) { /* already VARCHAR or table doesn\'t exist */ }
+        try { await db.execute('ALTER TABLE guild_message_events MODIFY COLUMN event_type VARCHAR(16) NOT NULL'); } catch (e) { /* already VARCHAR or table doesn\'t exist */ }
         // Track command usage per day per channel
         await db.execute(`CREATE TABLE IF NOT EXISTS guild_command_usage (
             guild_id BIGINT UNSIGNED NOT NULL,
@@ -234,19 +238,53 @@ async function initDatabase() {
             INDEX idx_guild_date (guild_id, usage_date)
         ) ENGINE=InnoDB`);
         // Daily aggregated stats for faster dashboard queries
+        // Column names use *_count suffix to match migration 011 and the rollup job
         await db.execute(`CREATE TABLE IF NOT EXISTS guild_daily_stats (
             guild_id BIGINT UNSIGNED NOT NULL,
             channel_id VARCHAR(32) NOT NULL DEFAULT '__guild__',
             stat_date DATE NOT NULL,
-            messages INT NOT NULL DEFAULT 0,
-            edits INT NOT NULL DEFAULT 0,
-            deletes INT NOT NULL DEFAULT 0,
-            joins INT NOT NULL DEFAULT 0,
-            leaves INT NOT NULL DEFAULT 0,
+            messages_count INT NOT NULL DEFAULT 0,
+            edits_count INT NOT NULL DEFAULT 0,
+            deletes_count INT NOT NULL DEFAULT 0,
+            joins_count INT NOT NULL DEFAULT 0,
+            leaves_count INT NOT NULL DEFAULT 0,
+            commands_count INT NOT NULL DEFAULT 0,
             active_users INT NOT NULL DEFAULT 0,
             PRIMARY KEY (guild_id, channel_id, stat_date),
             INDEX idx_guild_date (guild_id, stat_date)
         ) ENGINE=InnoDB`);
+
+        // Migration: rename old bare-name columns to *_count if needed, and add missing columns
+        const dailyStatsMigrations = [
+            // Add missing columns (safe even if they already exist)
+            "ALTER TABLE guild_daily_stats ADD COLUMN IF NOT EXISTS edits_count INT NOT NULL DEFAULT 0",
+            "ALTER TABLE guild_daily_stats ADD COLUMN IF NOT EXISTS deletes_count INT NOT NULL DEFAULT 0",
+            "ALTER TABLE guild_daily_stats ADD COLUMN IF NOT EXISTS joins_count INT NOT NULL DEFAULT 0",
+            "ALTER TABLE guild_daily_stats ADD COLUMN IF NOT EXISTS leaves_count INT NOT NULL DEFAULT 0",
+            "ALTER TABLE guild_daily_stats ADD COLUMN IF NOT EXISTS commands_count INT NOT NULL DEFAULT 0",
+            "ALTER TABLE guild_daily_stats ADD COLUMN IF NOT EXISTS active_users INT NOT NULL DEFAULT 0",
+            "ALTER TABLE guild_daily_stats ADD COLUMN IF NOT EXISTS messages_count INT NOT NULL DEFAULT 0",
+        ];
+        for (const sql of dailyStatsMigrations) {
+            try { await db.execute(sql); } catch (e) { /* column already exists or unsupported syntax */ }
+        }
+        // If old bare-name columns exist, copy data and drop them
+        try {
+            const [cols] = await db.execute("SHOW COLUMNS FROM guild_daily_stats LIKE 'messages'");
+            if (cols.length > 0) {
+                console.log('[migration] Migrating guild_daily_stats: renaming bare columns to *_count...');
+                await db.execute('UPDATE guild_daily_stats SET messages_count = messages WHERE messages_count = 0 AND messages > 0');
+                await db.execute('UPDATE guild_daily_stats SET edits_count = edits WHERE edits_count = 0 AND edits > 0').catch(() => {});
+                await db.execute('UPDATE guild_daily_stats SET deletes_count = deletes WHERE deletes_count = 0 AND deletes > 0').catch(() => {});
+                await db.execute('UPDATE guild_daily_stats SET joins_count = joins WHERE joins_count = 0 AND joins > 0').catch(() => {});
+                await db.execute('UPDATE guild_daily_stats SET leaves_count = leaves WHERE leaves_count = 0 AND leaves > 0').catch(() => {});
+                // Drop old columns after migration
+                for (const col of ['messages', 'edits', 'deletes', 'joins', 'leaves']) {
+                    try { await db.execute(`ALTER TABLE guild_daily_stats DROP COLUMN ${col}`); } catch (e) { /* already gone */ }
+                }
+                console.log('[migration] guild_daily_stats columns migrated to *_count naming');
+            }
+        } catch (e) { /* table might not exist yet, that's fine */ }
 
         // Migrations: add reason column to blacklist/whitelist if missing
         try {

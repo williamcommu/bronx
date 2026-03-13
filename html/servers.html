@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bronx &middot; servers</title>
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" href="/assets/avatar.png">
+    <link rel="apple-touch-icon" href="/assets/avatar.png">
+    
+    <meta name="theme-color" content="#b4a7d6">
+    <link rel="stylesheet" href="/css/servers.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Top Navigation -->
+    <header class="topnav">
+        <a href="/servers" class="topnav-brand">
+            <span class="brand-text">bronx</span>
+            <span class="brand-badge">servers</span>
+        </a>
+        <div class="topnav-right">
+            <div class="user-chip" id="user-chip" style="display: none;">
+                <img id="user-avatar" src="" alt="avatar" class="user-chip-avatar">
+                <span id="user-name" class="user-chip-name">Username</span>
+                <button id="logout-btn" class="user-chip-logout" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="servers-main">
+        <!-- Loading State -->
+        <div id="loading-state" class="loading-state">
+            <div class="spinner-lg"></div>
+            <p>loading your servers...</p>
+        </div>
+
+        <!-- Not Authenticated -->
+        <div id="login-state" class="login-state" style="display: none;">
+            <div class="login-card">
+                <div class="login-icon"><i class="fab fa-discord"></i></div>
+                <h1>welcome to bronx</h1>
+                <p>log in with discord to manage your servers</p>
+                <a href="/login" class="btn btn-discord">
+                    <i class="fab fa-discord"></i>
+                    <span>log in with discord</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Server List -->
+        <div id="servers-state" class="servers-state" style="display: none;">
+            <div class="servers-header">
+                <h1>your servers</h1>
+                <p>select a server to manage</p>
+            </div>
+            
+            <!-- Owner Dashboard Card (only visible to bot owner) -->
+            <div id="owner-card-wrap" class="owner-card-wrap" style="display: none;">
+                <a href="/owner" class="owner-card">
+                    <div class="owner-card-icon">
+                        <i class="fas fa-crown"></i>
+                    </div>
+                    <div class="owner-card-info">
+                        <span class="owner-card-title">owner dashboard</span>
+                        <span class="owner-card-desc">global settings, user management, ML config, blacklists</span>
+                    </div>
+                    <i class="fas fa-chevron-right owner-card-arrow"></i>
+                </a>
+            </div>
+
+            <!-- Search -->
+            <div class="servers-search-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" id="server-search" placeholder="search servers..." autocomplete="off" spellcheck="false">
+            </div>
+
+            <!-- Server Grid -->
+            <div class="server-grid" id="server-grid"></div>
+
+            <!-- No Servers -->
+            <div id="no-servers" class="no-servers" style="display: none;">
+                <i class="fas fa-server"></i>
+                <h3>no servers found</h3>
+                <p>bronx isn't in any servers you manage, or you don't have manage server permissions.</p>
+                <a href="https://discord.com/oauth2/authorize?client_id=828380019406929962&permissions=8&scope=bot%20applications.commands" 
+                   class="btn btn-outline" target="_blank">
+                    <i class="fas fa-plus"></i> invite bronx
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/servers.js"></script>
+</body>
+</html>

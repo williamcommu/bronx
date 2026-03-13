@@ -545,7 +545,7 @@ async function checkAuthAndUpdateButton() {
             if (data.authenticated && loginBtn) {
                 // User is logged in, change button to dashboard
                 loginBtn.textContent = 'dashboard';
-                loginBtn.href = '/dashboard.html';
+                loginBtn.href = '/dashboard';
                 loginBtn.classList.remove('btn-secondary');
                 loginBtn.classList.add('btn-primary');
 
@@ -553,7 +553,7 @@ async function checkAuthAndUpdateButton() {
                 const navLoginBtn = document.getElementById('nav-login-btn');
                 if (navLoginBtn) {
                     navLoginBtn.innerHTML = '<i class="fas fa-tachometer-alt"></i> dashboard';
-                    navLoginBtn.href = '/dashboard.html';
+                    navLoginBtn.href = '/dashboard';
                 }
             }
         }
@@ -753,7 +753,34 @@ function initFloatingNav() {
     if (!nav) return;
 
     const hero = document.querySelector('.hero');
+    const hamburger = document.getElementById('navHamburger');
+    const navLinks = document.getElementById('navLinks');
     let lastScroll = 0;
+
+    // Hamburger toggle
+    if (hamburger && navLinks) {
+        hamburger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hamburger.classList.toggle('open');
+            navLinks.classList.toggle('open');
+        });
+
+        // Close menu when a nav link is clicked
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                hamburger.classList.remove('open');
+                navLinks.classList.remove('open');
+            });
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!nav.contains(e.target)) {
+                hamburger.classList.remove('open');
+                navLinks.classList.remove('open');
+            }
+        });
+    }
 
     // Nav invite button
     const navInviteBtn = document.getElementById('nav-invite-btn');
@@ -774,6 +801,11 @@ function initFloatingNav() {
             nav.classList.add('visible');
         } else {
             nav.classList.remove('visible');
+            // Close mobile menu when scrolling back to hero
+            if (hamburger && navLinks) {
+                hamburger.classList.remove('open');
+                navLinks.classList.remove('open');
+            }
         }
 
         lastScroll = currentScroll;

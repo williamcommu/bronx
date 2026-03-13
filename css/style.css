@@ -10,35 +10,35 @@
 
 @font-face {
 	font-family: 'Segoe UI';
-	src: url('fonts/segoe-ui.woff') format('woff');
+	src: url('../fonts/segoe-ui.woff') format('woff');
 	font-weight: normal;
 	font-style: normal;
 }
 
 @font-face {
 	font-family: 'Segoe UI';
-	src: url('fonts/segoe-ui-bold.woff') format('woff');
+	src: url('../fonts/segoe-ui-bold.woff') format('woff');
 	font-weight: bold;
 	font-style: normal;
 }
 
 @font-face {
 	font-family: 'Segoe UI';
-	src: url('fonts/segoe-ui-italic.woff') format('woff');
+	src: url('../fonts/segoe-ui-italic.woff') format('woff');
 	font-weight: normal;
 	font-style: italic;
 }
 
 @font-face {
 	font-family: 'Segoe UI';
-	src: url('fonts/segoe-ui-bold-italic.woff') format('woff');
+	src: url('../fonts/segoe-ui-bold-italic.woff') format('woff');
 	font-weight: bold;
 	font-style: italic;
 }
 
 @font-face {
 	font-family: 'Segoe UI';
-	src: url('fonts/segoe-ui-black.ttf') format('truetype');
+	src: url('../fonts/segoe-ui-black.ttf') format('truetype');
 	font-weight: 900;
 	font-style: normal;
 }
@@ -700,8 +700,102 @@ body {
     color: var(--accent);
 }
 
-/* Responsive */
+/* ═══════════════════════════════════════════════════════
+   HAMBURGER BUTTON (hidden on desktop)
+   ═══════════════════════════════════════════════════════ */
+.nav-hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    z-index: 1001;
+}
+
+.nav-hamburger span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--fg);
+    border-radius: 2px;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.nav-hamburger.open span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.nav-hamburger.open span:nth-child(2) {
+    opacity: 0;
+}
+
+.nav-hamburger.open span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — TABLET  (≤ 768px)
+   ═══════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
+    .container {
+        padding: 0 1.25rem;
+    }
+
+    /* ── Navbar ── */
+    .floating-nav {
+        width: 94%;
+    }
+
+    .nav-hamburger {
+        display: flex;
+    }
+
+    .nav-links {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: calc(100% + 0.5rem);
+        right: 0;
+        left: 0;
+        background: rgba(10, 10, 10, 0.92);
+        backdrop-filter: blur(20px) saturate(1.4);
+        -webkit-backdrop-filter: blur(20px) saturate(1.4);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 0.75rem;
+        gap: 0.25rem;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .nav-links.open {
+        display: flex;
+    }
+
+    .nav-links a {
+        padding: 0.65rem 1rem;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        text-align: left;
+        width: 100%;
+    }
+
+    .nav-links a:hover {
+        background: rgba(180, 167, 214, 0.08);
+    }
+
+    .nav-btn {
+        text-align: center !important;
+        justify-content: center;
+    }
+
+    .nav-btn-secondary {
+        justify-content: center !important;
+    }
+
+    /* ── Hero ── */
     .logo {
         font-size: 4rem;
     }
@@ -710,13 +804,282 @@ body {
         font-size: 1.2rem;
     }
 
+    .cta-group {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .btn {
+        width: 100%;
+        max-width: 280px;
+        text-align: center;
+    }
+
+    /* ── Sections ── */
     .section-title {
+        font-size: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    .features {
+        padding: 4rem 0;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .feature-card {
+        padding: 1.5rem;
+    }
+
+    .feature-title {
+        font-size: 1.3rem;
+    }
+
+    /* ── Commands ── */
+    .commands {
+        padding: 4rem 0;
+    }
+
+    .command-list {
+        grid-template-columns: 1fr;
+    }
+
+    .category {
+        padding: 1.5rem;
+    }
+
+    .category-name {
+        font-size: 1.5rem;
+    }
+
+    /* ── Stats ── */
+    .stats {
+        padding: 4rem 0;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    .stat-value {
+        font-size: 2.25rem;
+    }
+
+    /* ── Footer ── */
+    .footer-links {
+        gap: 1rem;
+    }
+
+    /* ── Modal ── */
+    .modal.active {
+        padding: 1rem;
+    }
+
+    .modal-header {
+        padding: 1.5rem 1.5rem 1rem;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-title {
+        font-size: 1.4rem;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — SMALL MOBILE  (≤ 480px)
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+    .container {
+        padding: 0 1rem;
+    }
+
+    /* ── Navbar ── */
+    .floating-nav {
+        width: 96%;
+    }
+
+    .floating-nav-inner {
+        padding: 0.6rem 1rem;
+    }
+
+    .nav-brand {
+        font-size: 1.1rem;
+    }
+
+    /* ── Hero ── */
+    .hero {
+        min-height: 90vh;
+    }
+
+    .logo {
+        font-size: 3rem;
+    }
+
+    .tagline {
+        font-size: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .btn {
+        padding: 0.85rem 2rem;
+        font-size: 0.9rem;
+    }
+
+    .scroll-indicator {
+        font-size: 1.5rem;
+        bottom: 1.5rem;
+    }
+
+    /* ── Sections ── */
+    .section-title {
+        font-size: 1.6rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .features {
+        padding: 3rem 0;
+    }
+
+    .feature-card {
+        padding: 1.25rem;
+    }
+
+    .feature-icon {
         font-size: 2rem;
     }
 
-    .features-grid,
-    .command-list {
-        grid-template-columns: 1fr;
+    .feature-title {
+        font-size: 1.15rem;
+    }
+
+    .feature-desc {
+        font-size: 0.875rem;
+    }
+
+    /* ── Commands ── */
+    .commands {
+        padding: 3rem 0;
+    }
+
+    .category {
+        padding: 1.25rem;
+    }
+
+    .category-icon {
+        font-size: 1.5rem;
+    }
+
+    .category-name {
+        font-size: 1.25rem;
+    }
+
+    .command-item {
+        padding: 0.75rem;
+    }
+
+    .command-name {
+        font-size: 0.85rem;
+    }
+
+    .command-desc {
+        font-size: 0.8rem;
+    }
+
+    /* ── Stats ── */
+    .stats {
+        padding: 3rem 0;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+    }
+
+    .stat-item {
+        padding: 1rem;
+    }
+
+    /* ── Footer ── */
+    .footer {
+        padding: 2rem 0;
+    }
+
+    .footer-links {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    /* ── Modal ── */
+    .modal.active {
+        padding: 0.5rem;
+        align-items: flex-end;
+    }
+
+    .modal-content {
+        max-height: 85vh;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .modal-header {
+        padding: 1.25rem 1.25rem 0.75rem;
+    }
+
+    .modal-body {
+        padding: 1.25rem;
+    }
+
+    .modal-title {
+        font-size: 1.2rem;
+    }
+
+    .modal-usage {
+        font-size: 0.8rem;
+        padding: 0.75rem;
+    }
+
+    .modal-example {
+        font-size: 0.8rem;
+        padding: 0.6rem 0.75rem;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — VERY SMALL MOBILE  (≤ 360px)
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 360px) {
+    .logo {
+        font-size: 2.5rem;
+    }
+
+    .tagline {
+        font-size: 0.9rem;
+    }
+
+    .section-title {
+        font-size: 1.4rem;
+    }
+
+    .category-name {
+        font-size: 1.1rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
     }
 }
 

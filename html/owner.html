@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bronx &middot; owner</title>
+    
+    <link rel="icon" type="image/png" href="/assets/avatar.png">
+    <link rel="apple-touch-icon" href="/assets/avatar.png">
+    <meta name="theme-color" content="#b4a7d6">
+    <link rel="stylesheet" href="/css/owner.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Top Navigation -->
+    <header class="topnav">
+        <div class="topnav-left">
+            <a href="/servers" class="topnav-back" title="Back to servers">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <a href="/owner" class="topnav-brand">
+                <span class="brand-text">bronx</span>
+                <span class="brand-badge owner">owner</span>
+            </a>
+        </div>
+        <div class="topnav-right">
+            <div class="user-chip" id="user-chip" style="display: none;">
+                <img id="user-avatar" src="" alt="avatar" class="user-chip-avatar">
+                <span id="user-name" class="user-chip-name">Owner</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tab Bar -->
+    <nav class="tab-bar">
+        <button class="tab-btn active" data-tab="overview"><i class="fas fa-chart-line"></i> overview</button>
+        <button class="tab-btn" data-tab="users"><i class="fas fa-users"></i> users</button>
+        <button class="tab-btn" data-tab="shop"><i class="fas fa-store"></i> shop</button>
+        <button class="tab-btn" data-tab="ml"><i class="fas fa-brain"></i> ML config</button>
+        <button class="tab-btn" data-tab="lists"><i class="fas fa-list"></i> lists</button>
+        <button class="tab-btn" data-tab="economy"><i class="fas fa-coins"></i> economy</button>
+    </nav>
+
+    <main class="owner-main">
+        <!-- Loading -->
+        <div id="loading-state" class="loading-state">
+            <div class="spinner-lg"></div>
+            <p>loading owner dashboard...</p>
+        </div>
+
+        <!-- Overview Tab -->
+        <section id="tab-overview" class="tab-panel active">
+            <div class="card-grid card-grid--4">
+                <div class="stat-card">
+                    <div class="stat-icon purple"><i class="fas fa-server"></i></div>
+                    <div class="stat-body">
+                        <span class="stat-label">total guilds</span>
+                        <span class="stat-value" id="stat-guilds">0</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fas fa-users"></i></div>
+                    <div class="stat-body">
+                        <span class="stat-label">total users</span>
+                        <span class="stat-value" id="stat-users">0</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fas fa-terminal"></i></div>
+                    <div class="stat-body">
+                        <span class="stat-label">commands today</span>
+                        <span class="stat-value" id="stat-commands">0</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon cyan"><i class="fas fa-coins"></i></div>
+                    <div class="stat-body">
+                        <span class="stat-label">total economy</span>
+                        <span class="stat-value" id="stat-economy">$0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-bar"></i> command usage (global)</h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="global-command-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-lightbulb"></i> suggestions</h3>
+                    <button class="btn btn-outline btn-sm" id="refresh-suggestions"><i class="fas fa-sync-alt"></i></button>
+                </div>
+                <div class="card-body">
+                    <div class="item-list" id="suggestions-list">
+                        <p class="text-muted">no suggestions yet</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Users Tab -->
+        <section id="tab-users" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-search"></i> user search</h3>
+                </div>
+                <div class="card-body">
+                    <div class="inline-form">
+                        <input type="text" id="user-search-input" placeholder="search by user ID or username..." class="input">
+                        <button class="btn btn-outline" id="search-users-btn">search</button>
+                    </div>
+                    <div class="item-list" id="user-search-results" style="margin-top: 1rem;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-award"></i> badge management</h3>
+                </div>
+                <div class="card-body">
+                    <div class="inline-form">
+                        <input type="text" id="badge-user-id" placeholder="User ID" class="input">
+                        <select id="badge-type" class="input">
+                            <option value="dev">Developer</option>
+                            <option value="admin">Admin</option>
+                            <option value="is_mod">Moderator</option>
+                            <option value="maintainer">Maintainer</option>
+                            <option value="contributor">Contributor</option>
+                            <option value="vip">VIP</option>
+                        </select>
+                        <button class="btn btn-primary btn-sm" id="grant-badge"><i class="fas fa-plus"></i> grant</button>
+                        <button class="btn btn-danger btn-sm" id="revoke-badge"><i class="fas fa-minus"></i> revoke</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Shop Tab (Global Shop Items) -->
+        <section id="tab-shop" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-store"></i> global shop items</h3>
+                    <button class="btn btn-primary btn-sm" id="add-shop-item"><i class="fas fa-plus"></i> add item</button>
+                </div>
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Level</th><th></th></tr>
+                        </thead>
+                        <tbody id="shop-items-tbody"></tbody>
+                    </table>
+                    <p id="shop-items-empty" class="text-muted" style="margin-top:1rem;">no shop items</p>
+                </div>
+            </div>
+
+            <div class="card-grid card-grid--2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-fire-alt"></i> daily deals</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="item-list" id="daily-deals-list">
+                            <p class="text-muted">no daily deals configured</p>
+                        </div>
+                        <div class="inline-form" style="margin-top: 1rem;">
+                            <select id="deal-item-select" class="input" style="min-width:140px;">
+                                <option value="">select item...</option>
+                            </select>
+                            <input type="number" id="deal-discount" placeholder="% off" min="1" max="99" class="input" style="width:70px;">
+                            <input type="number" id="deal-stock" placeholder="Stock" min="1" class="input" style="width:70px;">
+                            <button class="btn btn-outline btn-sm" id="add-daily-deal"><i class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-pie"></i> bazaar stats</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="stat-row">
+                            <span class="stat-label">total shareholders</span>
+                            <span class="stat-value" id="total-shareholders">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">total shares</span>
+                            <span class="stat-value" id="total-shares">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">recent visitors</span>
+                            <span class="stat-value" id="recent-visitors">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-grid card-grid--2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-magic"></i> fishing rods</h3>
+                        <button class="btn btn-outline btn-sm" id="add-rod-btn"><i class="fas fa-plus"></i> add rod</button>
+                    </div>
+                    <div class="card-body">
+                        <div id="rods-list" class="gear-list">
+                            <p class="text-muted">no rods configured</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-worm"></i> bait</h3>
+                        <button class="btn btn-outline btn-sm" id="add-bait-btn"><i class="fas fa-plus"></i> add bait</button>
+                    </div>
+                    <div class="card-body">
+                        <div id="bait-list" class="gear-list">
+                            <p class="text-muted">no bait configured</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ML Config Tab -->
+        <section id="tab-ml" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-brain"></i> machine learning settings</h3>
+                    <button class="btn btn-primary btn-sm" id="add-ml-setting"><i class="fas fa-plus"></i> add</button>
+                </div>
+                <div class="card-body">
+                    <div class="item-list" id="ml-settings-list">
+                        <p class="text-muted">no ML settings configured</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-bar"></i> price change history</h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="price-changes-chart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lists Tab (Blacklist / Whitelist) -->
+        <section id="tab-lists" class="tab-panel">
+            <div class="card-grid card-grid--2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-ban"></i> blacklist</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="item-list" id="blacklist-list">
+                            <p class="text-muted">no blacklisted users</p>
+                        </div>
+                        <div class="inline-form" style="margin-top: 0.75rem;">
+                            <input type="text" id="bl-user-id" placeholder="User ID" class="input">
+                            <input type="text" id="bl-reason" placeholder="Reason" class="input">
+                            <button class="btn btn-outline btn-sm" id="add-bl">add</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-check-circle"></i> whitelist</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="item-list" id="whitelist-list">
+                            <p class="text-muted">no whitelisted users</p>
+                        </div>
+                        <div class="inline-form" style="margin-top: 0.75rem;">
+                            <input type="text" id="wl-user-id" placeholder="User ID" class="input">
+                            <input type="text" id="wl-reason" placeholder="Reason" class="input">
+                            <button class="btn btn-outline btn-sm" id="add-wl">add</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Economy Tab -->
+        <section id="tab-economy" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-globe"></i> global economy settings</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-field">
+                        <label>default economy mode</label>
+                        <select id="default-economy-mode" class="input">
+                            <option value="global">global — bot owner controls economy</option>
+                            <option value="server">server — server owners control economy</option>
+                        </select>
+                        <span class="form-hint">this sets the default for new servers. existing servers keep their current mode.</span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label>global interest rate (%)</label>
+                            <input type="number" id="global-interest-rate" step="0.01" min="0" max="100" value="2" class="input">
+                        </div>
+                        <div class="form-field">
+                            <label>interest interval (hours)</label>
+                            <input type="number" id="global-interest-interval" min="1" value="24" class="input">
+                        </div>
+                        <div class="form-field">
+                            <label>max bank interest</label>
+                            <input type="number" id="global-max-interest" min="0" value="1000000" class="input">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="save-economy-settings" style="margin-top: 1rem;">
+                        <i class="fas fa-save"></i> save economy settings
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-university"></i> guild balance adjust</h3>
+                </div>
+                <div class="card-body">
+                    <div class="inline-form">
+                        <input type="text" id="adjust-guild-id" placeholder="Guild ID" class="input">
+                        <input type="number" id="adjust-amount" placeholder="Amount (+/-)" class="input">
+                        <input type="text" id="adjust-reason" placeholder="Reason" class="input">
+                        <button class="btn btn-primary btn-sm" id="adjust-balance-btn"><i class="fas fa-pen"></i> adjust</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/js/owner.js"></script>
+</body>
+</html>

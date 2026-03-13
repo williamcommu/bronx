@@ -111,34 +111,45 @@ function requireAuth(req, res, next) {
 /**
  * Require specific guild membership/permission
  * Must be used after requireAuth
+ * Checks X-Guild-ID header, params, query, and body for guild ID
+ * Uses session.accessibleGuilds (set during OAuth callback)
  */
 function requireGuildAccess(req, res, next) {
-    const guildId = req.params.guildId || req.query.guildId || req.body?.guildId;
+    const guildId = req.headers['x-guild-id'] || req.params.guildId || req.query.guildId || req.body?.guildId;
     
-    if (!guildId) {
+    if (!guildId || guildId === 'global' || guildId === 'null' || guildId === 'undefined') {
         return res.status(400).json({ error: 'Guild ID required' });
     }
 
-    // Check if user has access to this guild
-    const userGuilds = req.session.guilds || [];
+    // Check if user has access to this guild (stored during OAuth)
+    const userGuilds = req.session.accessibleGuilds || [];
     const guild = userGuilds.find(g => g.id === guildId);
     
     if (!guild) {
         return res.status(403).json({ error: 'You do not have access to this server' });
     }
 
-    // Check for MANAGE_GUILD permission (0x20) or ADMINISTRATOR (0x8)
-    const permissions = parseInt(guild.permissions || 0);
-    const hasManageGuild = (permissions & 0x20) !== 0;
-    const hasAdmin = (permissions & 0x8) !== 0;
-    const isOwner = guild.owner === true;
-
-    if (!hasManageGuild && !hasAdmin && !isOwner) {
-        return res.status(403).json({ error: 'You do not have permission to manage this server' });
-    }
-
     // Attach guild info to request
     req.guild = guild;
+    req.guildId = guildId;
+    next();
+}
+
+/**
+ * Require bot owner (BOT_OWNER_ID env var)
+ * Must be used after requireAuth
+ */
+function requireBotOwner(req, res, next) {
+    const botOwnerId = process.env.BOT_OWNER_ID;
+    if (!botOwnerId) {
+        return res.status(500).json({ error: 'BOT_OWNER_ID not configured' });
+    }
+    
+    if (!req.session?.user || req.session.user.id !== botOwnerId) {
+        return res.status(403).json({ error: 'Bot owner access required' });
+    }
+    
+    req.isBotOwner = true;
     next();
 }
 
@@ -231,6 +242,51 @@ function validateSnowflake(paramName) {
     };
 }
 
+/**
+ * Validate numeric parameters
+ * Returns middleware that checks numeric fields are valid integers within bounds
+ */
+function validateNumeric(fields, options = {}) {
+    const { min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER, allowZero = true } = options;
+    
+    return (req, res, next) => {
+        for (const field of fields) {
+            const value = req.body?.[field] ?? req.query?.[field] ?? req.params?.[field];
+            
+            if (value === undefined || value === null || value === '') continue;
+            
+            const num = Number(value);
+            
+            if (!Number.isFinite(num)) {
+                return res.status(400).json({ error: `${field} must be a valid number` });
+            }
+            
+            if (!allowZero && num === 0) {
+                return res.status(400).json({ error: `${field} cannot be zero` });
+            }
+            
+            if (num < min || num > max) {
+                return res.status(400).json({ error: `${field} must be between ${min} and ${max}` });
+            }
+        }
+        
+        next();
+    };
+}
+
+/**
+ * Validate required fields exist in request body
+ */
+function requireFields(...fields) {
+    return (req, res, next) => {
+        const missing = fields.filter(f => req.body?.[f] === undefined || req.body?.[f] === null || req.body?.[f] === '');
+        if (missing.length > 0) {
+            return res.status(400).json({ error: `Missing required fields: ${missing.join(', ')}` });
+        }
+        next();
+    };
+}
+
 module.exports = {
     generateCsrfToken,
     csrfProtection,
@@ -239,9 +295,12 @@ module.exports = {
     securityHeaders,
     requireAuth,
     requireGuildAccess,
+    requireBotOwner,
     sanitizeInput,
     sanitizeBody,
     securityLogger,
     isValidSnowflake,
-    validateSnowflake
+    validateSnowflake,
+    validateNumeric,
+    requireFields
 };

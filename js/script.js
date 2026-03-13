@@ -583,7 +583,16 @@ function initTypingEffect() {
         'economy & gambling',
         'built with C++',
         'fishing & trading',
-        'fast & reliable'
+        'fast & reliable',
+        'big numbers go brrrrrrrrr',
+        'for number nerds',
+        'i see u out there big bro, u got this',
+        'probably too statistical',
+        'you said it makes how many graphs?',
+        'always by your side',
+        'try our economy',
+        'discord.gg/bronx',
+        'ks is bald'
     ];
 
     let phraseIndex = 0;

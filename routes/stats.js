@@ -142,7 +142,7 @@ router.get('/api/stats/overview', async (req, res) => {
                 memberCount: 0,
                 totalEconomyValue: 0,
                 commandsToday: 0,
-                fishCaughtToday: 0,
+                newMembersToday: 0,
                 noServerSelected: true
             });
         }
@@ -163,7 +163,7 @@ router.get('/api/stats/overview', async (req, res) => {
 
         let economyTotal = 0;
         let commandsTodayCount = 0;
-        let fishTodayCount = 0;
+        let newMembersTodayCount = 0;
 
         // Economy value: try tables in order of preference (v2 → v1 → global)
         // v2 migration drops server_users; the global `users` table is the source of truth
@@ -245,36 +245,30 @@ router.get('/api/stats/overview', async (req, res) => {
             }
         }
 
-        // Fish today: try user_fish_catches (v2) → fish_catches (v1) → server_fish_catches (v1)
+        // New members today: count members who joined today via Discord API guild info
+        // We use the guild_member_events table if available, else approximate from Discord
         try {
-            const [guildFish] = await db.execute(
-                'SELECT COUNT(*) as count FROM user_fish_catches WHERE guild_id = ? AND caught_at >= CURDATE()',
+            const [newMembers] = await db.execute(
+                'SELECT COUNT(*) as count FROM guild_member_events WHERE guild_id = ? AND event_type = "join" AND created_at >= CURDATE()',
                 [guildId]
             );
-            fishTodayCount = Number(guildFish[0]?.count || 0);
+            newMembersTodayCount = Number(newMembers[0]?.count || 0);
         } catch (e) {
+            // Fallback: try member_joins or server_member_events
             try {
-                const [guildFish] = await db.execute(
-                    'SELECT COUNT(*) as count FROM fish_catches WHERE guild_id = ? AND caught_at >= CURDATE()',
+                const [newMembers] = await db.execute(
+                    'SELECT COUNT(*) as count FROM member_joins WHERE guild_id = ? AND joined_at >= CURDATE()',
                     [guildId]
                 );
-                fishTodayCount = Number(guildFish[0]?.count || 0);
-            } catch (e2) {
-                try {
-                    const [guildFish] = await db.execute(
-                        'SELECT COUNT(*) as count FROM server_fish_catches WHERE guild_id = ? AND caught_at >= CURDATE()',
-                        [guildId]
-                    );
-                    fishTodayCount = Number(guildFish[0]?.count || 0);
-                } catch (e3) { console.warn('fish today query failed:', e3.message); }
-            }
+                newMembersTodayCount = Number(newMembers[0]?.count || 0);
+            } catch (e2) { console.warn('new members today query failed:', e2.message); }
         }
 
         res.json({
             memberCount,
             totalEconomyValue: economyTotal,
             commandsToday: commandsTodayCount,
-            fishCaughtToday: fishTodayCount
+            newMembersToday: newMembersTodayCount
         });
     } catch (error) {
         console.error('Overview stats error:', error);

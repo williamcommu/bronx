@@ -1723,6 +1723,16 @@ select.input {
     font-weight: 600;
 }
 
+.activity-action code {
+    font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', monospace;
+    font-size: 0.78em;
+    background: var(--bg-raised, rgba(255,255,255,0.06));
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    color: var(--accent);
+}
+
 /* Activity "See More" button */
 .activity-see-more {
     display: flex;
@@ -1791,7 +1801,9 @@ select.input {
 
 .activity-pagination {
     display: flex;
+    align-items: center;
     justify-content: center;
+    gap: 0.75rem;
     padding: 1rem 0 0;
     border-top: 1px solid var(--card-border);
     margin-top: 0.5rem;
@@ -1800,6 +1812,14 @@ select.input {
 .activity-page-info {
     font-size: 0.75rem;
     color: var(--fg-dim);
+    min-width: 6rem;
+    text-align: center;
+}
+
+.activity-page-prev:disabled,
+.activity-page-next:disabled {
+    opacity: 0.35;
+    pointer-events: none;
 }
 
 /* --- Modals ---------------------------------------------- */

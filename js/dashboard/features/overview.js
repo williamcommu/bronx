@@ -33,6 +33,20 @@ function logInverse(val) {
 }
 
 /**
+ * Normalize activity action HTML:
+ * - Keeps the first <b> (verb like Enabled/Disabled) as bold
+ * - Converts subsequent <b>target</b> to <code>target</code>
+ */
+function formatActivityAction(html) {
+    if (!html) return '';
+    let first = true;
+    return html.replace(/<b>(.*?)<\/b>/g, (match, inner) => {
+        if (first) { first = false; return match; }
+        return `<code>${inner}</code>`;
+    });
+}
+
+/**
  * Overview feature mixin
  */
 export const OverviewMixin = {
@@ -65,7 +79,7 @@ export const OverviewMixin = {
             cards[1].textContent = '$' + formatNumber(parseFloat(stats.totalEconomyValue) || 0);
         }
         if (cards[2]) cards[2].textContent = (stats.commandsToday ?? 0).toLocaleString();
-        if (cards[3]) cards[3].textContent = (stats.fishCaughtToday ?? 0).toLocaleString();
+        if (cards[3]) cards[3].textContent = (stats.newMembersToday ?? 0).toLocaleString();
     },
 
     // ── Activity Update ────────────────────────────────────────
@@ -88,7 +102,7 @@ export const OverviewMixin = {
                         ${userName}
                         <span class="activity-time">${a.time}</span>
                         <span class="activity-source"><em>${a.source}</em></span>
-                        <span class="activity-action">${a.action}</span>
+                        <span class="activity-action">${formatActivityAction(a.action)}</span>
                     </div>
                 `;
             }
@@ -104,12 +118,15 @@ export const OverviewMixin = {
     },
 
     // Show "See More" activity modal
-    async showActivityModal() {
-        const activityData = await this.apiCall('/stats/recent-activity/all?page=1&limit=20');
+    async showActivityModal(page = 1) {
+        const activityData = await this.apiCall(`/stats/recent-activity/all?page=${page}&limit=20`);
         if (!activityData || !activityData.activities) {
             this.toast('No activity data available', 'info');
             return;
         }
+
+        const currentPage = page;
+        const totalPages = activityData.totalPages || 1;
 
         const modalContent = `
             <div class="activity-modal-list">
@@ -121,18 +138,100 @@ export const OverviewMixin = {
                         ${userName}
                         <span class="activity-time">${a.time}</span>
                         <span class="activity-source"><em>${a.source}</em></span>
-                        <span class="activity-action">${a.action}</span>
+                        <span class="activity-action">${formatActivityAction(a.action)}</span>
                     </div>
                 `}).join('')}
             </div>
-            ${activityData.totalPages > 1 ? `
+            ${totalPages > 1 ? `
                 <div class="activity-pagination">
-                    <span class="activity-page-info">Page 1 of ${activityData.totalPages}</span>
+                    <button class="btn btn-outline btn-sm activity-page-prev" ${currentPage <= 1 ? 'disabled' : ''}>
+                        <i class="fas fa-chevron-left"></i> prev
+                    </button>
+                    <span class="activity-page-info">Page ${currentPage} of ${totalPages}</span>
+                    <button class="btn btn-outline btn-sm activity-page-next" ${currentPage >= totalPages ? 'disabled' : ''}>
+                        next <i class="fas fa-chevron-right"></i>
+                    </button>
                 </div>
             ` : ''}
         `;
 
         this.showModal('Recent Activity', modalContent);
+
+        // Attach pagination handlers after modal renders
+        if (totalPages > 1) {
+            setTimeout(() => {
+                const prevBtn = document.querySelector('.activity-page-prev');
+                const nextBtn = document.querySelector('.activity-page-next');
+                if (prevBtn) {
+                    prevBtn.addEventListener('click', () => {
+                        if (currentPage > 1) this.navigateActivityPage(currentPage - 1, totalPages);
+                    });
+                }
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', () => {
+                        if (currentPage < totalPages) this.navigateActivityPage(currentPage + 1, totalPages);
+                    });
+                }
+            }, 0);
+        }
+    },
+
+    // Navigate activity modal to a specific page without closing/reopening the modal
+    async navigateActivityPage(page, totalPages) {
+        const activityData = await this.apiCall(`/stats/recent-activity/all?page=${page}&limit=20`);
+        if (!activityData || !activityData.activities) return;
+
+        const currentPage = page;
+        const resolvedTotalPages = activityData.totalPages || totalPages;
+
+        // Update the modal body content in-place
+        const modalBody = document.getElementById('modal-body');
+        if (!modalBody) return;
+
+        modalBody.innerHTML = `
+            <div class="activity-modal-list">
+                ${activityData.activities.map(a => {
+                    const userName = a.user_name ? `<span class="activity-user">${a.user_name}</span>` : '';
+                    return `
+                    <div class="activity-item activity-item--rich">
+                        <img src="${a.avatar}" alt="" class="activity-avatar" onerror="this.onerror=null;this.src='/api/proxy/avatar-default/0'">
+                        ${userName}
+                        <span class="activity-time">${a.time}</span>
+                        <span class="activity-source"><em>${a.source}</em></span>
+                        <span class="activity-action">${formatActivityAction(a.action)}</span>
+                    </div>
+                `}).join('')}
+            </div>
+            ${resolvedTotalPages > 1 ? `
+                <div class="activity-pagination">
+                    <button class="btn btn-outline btn-sm activity-page-prev" ${currentPage <= 1 ? 'disabled' : ''}>
+                        <i class="fas fa-chevron-left"></i> prev
+                    </button>
+                    <span class="activity-page-info">Page ${currentPage} of ${resolvedTotalPages}</span>
+                    <button class="btn btn-outline btn-sm activity-page-next" ${currentPage >= resolvedTotalPages ? 'disabled' : ''}>
+                        next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            ` : ''}
+        `;
+
+        // Re-attach pagination handlers
+        const prevBtn = document.querySelector('.activity-page-prev');
+        const nextBtn = document.querySelector('.activity-page-next');
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                if (currentPage > 1) this.navigateActivityPage(currentPage - 1, resolvedTotalPages);
+            });
+        }
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                if (currentPage < resolvedTotalPages) this.navigateActivityPage(currentPage + 1, resolvedTotalPages);
+            });
+        }
+
+        // Scroll modal list back to top
+        const list = modalBody.querySelector('.activity-modal-list');
+        if (list) list.scrollTop = 0;
     },
 
     // ── Overview Trend Chart ───────────────────────────────────

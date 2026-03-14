@@ -51,30 +51,30 @@ async function logActivity(guildId, user, source, action, options = {}) {
  * @returns {string} Formatted action string
  */
 function formatAction(actionType, verb, target, options = {}) {
-    const targetBold = `<b>${escapeHtml(target)}</b>`;
+    const targetCode = `<code>${escapeHtml(target)}</code>`;
     
     switch (verb) {
         case 'changed':
             if (options.from && options.to) {
-                return `Changed ${actionType} from <b>${escapeHtml(options.from)}</b> to <b>${escapeHtml(options.to)}</b>`;
+                return `Changed ${actionType} from <code>${escapeHtml(options.from)}</code> to <code>${escapeHtml(options.to)}</code>`;
             }
-            return `Changed ${actionType} to ${targetBold}`;
+            return `Changed ${actionType} to ${targetCode}`;
         case 'enabled':
-            return `<b>Enabled</b> ${targetBold} ${actionType}`;
+            return `<b>Enabled</b> ${targetCode} ${actionType}`;
         case 'disabled':
-            return `<b>Disabled</b> ${targetBold} ${actionType}`;
+            return `<b>Disabled</b> ${targetCode} ${actionType}`;
         case 'added':
-            return `Added ${targetBold} ${actionType}`;
+            return `Added ${targetCode} ${actionType}`;
         case 'removed':
-            return `Removed ${targetBold} ${actionType}`;
+            return `Removed ${targetCode} ${actionType}`;
         case 'created':
-            return `Created ${targetBold} ${actionType}`;
+            return `Created ${targetCode} ${actionType}`;
         case 'ended':
-            return `Ended ${targetBold} ${actionType}`;
+            return `Ended ${targetCode} ${actionType}`;
         case 'deleted':
-            return `Deleted ${targetBold} ${actionType}`;
+            return `Deleted ${targetCode} ${actionType}`;
         default:
-            return `${verb} ${targetBold}`;
+            return `${verb} ${targetCode}`;
     }
 }
 

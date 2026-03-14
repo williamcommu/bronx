@@ -175,6 +175,10 @@ app.get('/privacy', (req, res) => {
     res.sendFile(path.join(__dirname, 'html/privacy.html'));
 });
 
+app.get('/sitemap', (req, res) => {
+    res.sendFile(path.join(__dirname, 'html/sitemap.html'));
+});
+
 // ── Health check ────────────────────────────────────────────────────────
 
 const { getDb, isDbHealthy } = require('./db');

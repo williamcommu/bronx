@@ -72,17 +72,43 @@ router.get('/api/proxy/avatar/:userId', async (req, res) => {
         return sendFallback(res);
     }
 
-    let url;
+    // Default avatar URL based on user ID (used as fallback)
+    const defaultIndex = Number((BigInt(userId) >> 22n) % 6n);
+    const defaultUrl = `${CDN_BASE}/embed/avatars/${defaultIndex}.png`;
+
     if (hash) {
         const ext = hash.startsWith('a_') ? 'gif' : 'png';
-        url = `${CDN_BASE}/avatars/${userId}/${hash}.${ext}?size=${size}`;
-    } else {
-        // Default avatar based on user ID
-        const index = Number((BigInt(userId) >> 22n) % 6n);
-        url = `${CDN_BASE}/embed/avatars/${index}.png`;
+        const url = `${CDN_BASE}/avatars/${userId}/${hash}.${ext}?size=${size}`;
+
+        try {
+            const response = await axios.get(url, {
+                responseType: 'arraybuffer',
+                timeout: 8000,
+                headers: {
+                    'User-Agent': 'BronxBot-Dashboard/1.0',
+                    'Accept': 'image/*'
+                },
+                validateStatus: (status) => status < 500
+            });
+
+            if (response.status !== 404 && response.status !== 403) {
+                const contentType = response.headers['content-type'] || 'image/png';
+                res.set({
+                    'Content-Type': contentType,
+                    'Cache-Control': 'public, max-age=3600, s-maxage=7200',
+                    'X-Proxy-Source': 'discord-cdn'
+                });
+                return res.send(Buffer.from(response.data));
+            }
+            // Hash was stale — fall through to default avatar
+        } catch (err) {
+            console.warn('[avatar-proxy] Hash lookup failed, using default:', err.message);
+            // Network error — fall through to default avatar
+        }
     }
 
-    return proxyImage(url, res);
+    // No hash provided, or hash was stale/failed — serve default avatar
+    return proxyImage(defaultUrl, res);
 });
 
 // ── Guild Icon Proxy ────────────────────────────────────────────────────

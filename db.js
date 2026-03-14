@@ -93,7 +93,10 @@ async function initDatabase() {
             connectionLimit: 10,
             queueLimit: 0,
             enableKeepAlive: true,
-            keepAliveInitialDelay: 30000
+            keepAliveInitialDelay: 30000,
+            // Preserve precision for Discord snowflake IDs (64-bit integers)
+            supportBigNumbers: true,
+            bigNumberStrings: true
         });
 
         // Verify connection
@@ -134,6 +137,27 @@ async function initDatabase() {
             command VARCHAR(64) NOT NULL,
             enabled TINYINT(1) NOT NULL DEFAULT 1,
             UNIQUE KEY uq_guild_cmd (guild_id, command)
+        )`);
+        // Bot-compatible scope settings (read by C++ bot)
+        await db.execute(`CREATE TABLE IF NOT EXISTS guild_command_scope_settings (
+            guild_id BIGINT NOT NULL,
+            command VARCHAR(100) NOT NULL,
+            scope_type ENUM('channel','role','user') NOT NULL,
+            scope_id BIGINT NOT NULL,
+            enabled BOOLEAN DEFAULT TRUE,
+            exclusive BOOLEAN DEFAULT FALSE,
+            PRIMARY KEY (guild_id, command, scope_type, scope_id),
+            INDEX idx_guild_cmd (guild_id, command)
+        )`);
+        await db.execute(`CREATE TABLE IF NOT EXISTS guild_module_scope_settings (
+            guild_id BIGINT NOT NULL,
+            module VARCHAR(100) NOT NULL,
+            scope_type ENUM('channel','role','user') NOT NULL,
+            scope_id BIGINT NOT NULL,
+            enabled BOOLEAN DEFAULT TRUE,
+            exclusive BOOLEAN DEFAULT FALSE,
+            PRIMARY KEY (guild_id, module, scope_type, scope_id),
+            INDEX idx_guild_mod (guild_id, module)
         )`);
         await db.execute(`CREATE TABLE IF NOT EXISTS guild_balances (
             guild_id VARCHAR(32) PRIMARY KEY,

@@ -103,8 +103,10 @@ export const GuildSettingsMixin = {
             const newPrefix = document.getElementById('modal-prefix')?.value.trim();
             if (!newPrefix) { this.toast('Prefix required', 'warning'); return; }
             if (newPrefix !== oldPrefix) {
-                await this.apiCall('/guild/custom-prefixes', { method: 'DELETE', body: JSON.stringify({ prefix: oldPrefix }) });
-                await this.apiCall('/guild/custom-prefixes', { method: 'POST', body: JSON.stringify({ prefix: newPrefix }) });
+                await this.apiCall('/guild/custom-prefixes', { 
+                    method: 'PUT', 
+                    body: JSON.stringify({ oldPrefix, newPrefix }) 
+                });
             }
             this.closeModal();
             this.loadGuildSettingsData();

@@ -16,6 +16,15 @@
 <body>
     <!-- Loading Splash Screen -->
     <div id="loading-splash">
+        <!-- Background Effects (matching index) -->
+        <canvas id="splashParticleCanvas" class="particle-canvas"></canvas>
+        <div class="bg-gradient"></div>
+        <div class="bg-orb bg-orb--1"></div>
+        <div class="bg-orb bg-orb--2"></div>
+        <div class="bg-orb bg-orb--3"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-noise"></div>
+        <div class="bg-vignette"></div>
         <div class="splash-content">
             <div class="splash-brand-row">
                 <span class="splash-brand">bronx</span>
@@ -46,26 +55,32 @@
             <div class="cmd-palette-results" id="cmd-palette-results">
                 <div class="cmd-palette-group">
                     <div class="cmd-palette-group-label">Navigation</div>
-                    <div class="cmd-palette-item" data-action="nav:overview"><i class="fas fa-chart-line"></i><span>Overview</span><kbd>G O</kbd></div>
-                    <div class="cmd-palette-item" data-action="nav:guild-settings"><i class="fas fa-cog"></i><span>Guild Settings</span><kbd>G S</kbd></div>
-                    <div class="cmd-palette-item" data-action="nav:commands"><i class="fas fa-terminal"></i><span>Commands &amp; Modules</span><kbd>G C</kbd></div>
-                    <div class="cmd-palette-item" data-action="nav:economy"><i class="fas fa-coins"></i><span>Economy</span><kbd>G E</kbd></div>
-                    <div class="cmd-palette-item" data-action="nav:shop"><i class="fas fa-store"></i><span>Shop &amp; Marketplace</span></div>
-                    <div class="cmd-palette-item" data-action="nav:fishing"><i class="fas fa-fish"></i><span>Fishing Stats</span></div>
-                    <div class="cmd-palette-item" data-action="nav:giveaways"><i class="fas fa-gift"></i><span>Giveaways</span></div>
-                    <div class="cmd-palette-item" data-action="nav:moderation"><i class="fas fa-shield-alt"></i><span>Moderation</span></div>
-                    <div class="cmd-palette-item" data-action="nav:leaderboards"><i class="fas fa-trophy"></i><span>Leaderboards</span></div>
-                    <div class="cmd-palette-item" data-action="nav:statistics"><i class="fas fa-chart-bar"></i><span>Statistics</span></div>
-                    <div class="cmd-palette-item" data-action="nav:voice-analytics"><i class="fas fa-headset"></i><span>Voice Analytics</span></div>
-                    <div class="cmd-palette-item" data-action="nav:top-users"><i class="fas fa-medal"></i><span>Top 10 Users</span></div>
-                    <div class="cmd-palette-item" data-action="nav:heatmap"><i class="fas fa-fire-alt"></i><span>Activity Heatmap</span></div>
-                    <div class="cmd-palette-item" data-action="nav:user-profiles"><i class="fas fa-id-card"></i><span>User Profiles</span></div>
-                    <div class="cmd-palette-item" data-action="nav:channel-analytics"><i class="fas fa-project-diagram"></i><span>Channel Analytics</span></div>
+                    <div class="cmd-palette-item" data-action="nav:overview"><i class="fas fa-chart-line"></i><div class="cmd-item-text"><span>Overview</span><small>Server stats, activity feed &amp; quick actions</small></div><kbd>G O</kbd></div>
+                    <div class="cmd-palette-item" data-action="nav:guild-settings"><i class="fas fa-cog"></i><div class="cmd-item-text"><span>Guild Settings</span><small>Custom prefix, welcome messages &amp; bot config</small></div><kbd>G S</kbd></div>
+                    <div class="cmd-palette-item" data-action="nav:commands"><i class="fas fa-terminal"></i><div class="cmd-item-text"><span>Commands &amp; Modules</span><small>Enable/disable commands &amp; set permissions</small></div><kbd>G C</kbd></div>
+                    <div class="cmd-palette-item" data-action="nav:reaction-roles"><i class="fas fa-smile"></i><div class="cmd-item-text"><span>Reaction Roles</span><small>Self-assignable roles via message reactions</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:autoroles"><i class="fas fa-user-plus"></i><div class="cmd-item-text"><span>Autoroles</span><small>Automatically assign roles when members join</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:economy"><i class="fas fa-coins"></i><div class="cmd-item-text"><span>Economy</span><small>Currency settings, daily rewards &amp; multipliers</small></div><kbd>G E</kbd></div>
+                    <div class="cmd-palette-item" data-action="nav:shop"><i class="fas fa-store"></i><div class="cmd-item-text"><span>Shop &amp; Marketplace</span><small>Create items members can buy with coins</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:fishing"><i class="fas fa-fish"></i><div class="cmd-item-text"><span>Fishing Stats</span><small>Fish catches, rare finds &amp; fishing leaderboard</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:giveaways"><i class="fas fa-gift"></i><div class="cmd-item-text"><span>Giveaways</span><small>Create &amp; manage server giveaways</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:moderation"><i class="fas fa-shield-alt"></i><div class="cmd-item-text"><span>Moderation</span><small>Auto-mod, banned words &amp; spam protection</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:mod-logs"><i class="fas fa-clipboard-list"></i><div class="cmd-item-text"><span>Mod Logs</span><small>View bans, kicks, warns &amp; mod actions</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:leaderboards"><i class="fas fa-trophy"></i><div class="cmd-item-text"><span>Leaderboards</span><small>XP, coins, messages &amp; activity rankings</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:statistics"><i class="fas fa-chart-bar"></i><div class="cmd-item-text"><span>Statistics</span><small>Server growth, engagement &amp; trends</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:activity"><i class="fas fa-users-cog"></i><div class="cmd-item-text"><span>Member Activity</span><small>Recent member joins, leaves &amp; actions</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:voice-analytics"><i class="fas fa-headset"></i><div class="cmd-item-text"><span>Voice Analytics</span><small>Voice channel usage &amp; time tracking</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:top-users"><i class="fas fa-medal"></i><div class="cmd-item-text"><span>Top 10 Users</span><small>Most active members by XP &amp; messages</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:heatmap"><i class="fas fa-fire-alt"></i><div class="cmd-item-text"><span>Activity Heatmap</span><small>Hourly/daily activity patterns visualization</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:user-profiles"><i class="fas fa-id-card"></i><div class="cmd-item-text"><span>User Profiles</span><small>Look up any member's stats &amp; history</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:channel-analytics"><i class="fas fa-project-diagram"></i><div class="cmd-item-text"><span>Channel Analytics</span><small>Message volume &amp; activity per channel</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:economy-analytics"><i class="fas fa-chart-pie"></i><div class="cmd-item-text"><span>Economy Analytics</span><small>Currency flow, top earners &amp; spending</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:gambling-analytics"><i class="fas fa-dice"></i><div class="cmd-item-text"><span>Gambling Analytics</span><small>Win rates, bets &amp; casino statistics</small></div></div>
                 </div>
                 <div class="cmd-palette-group">
                     <div class="cmd-palette-group-label">Actions</div>
-                    <div class="cmd-palette-item" data-action="action:save"><i class="fas fa-save"></i><span>Save All Changes</span><kbd>Ctrl+S</kbd></div>
-                    <div class="cmd-palette-item" data-action="action:refresh"><i class="fas fa-sync-alt"></i><span>Refresh Data</span><kbd>Ctrl+R</kbd></div>
+                    <div class="cmd-palette-item" data-action="action:save"><i class="fas fa-save"></i><div class="cmd-item-text"><span>Save All Changes</span><small>Persist all pending configuration changes</small></div><kbd>Ctrl+S</kbd></div>
+                    <div class="cmd-palette-item" data-action="action:refresh"><i class="fas fa-sync-alt"></i><div class="cmd-item-text"><span>Refresh Data</span><small>Reload current page data from server</small></div><kbd>Ctrl+R</kbd></div>
                 </div>
             </div>
             <div class="cmd-palette-footer">
@@ -362,7 +377,7 @@
 
                 <!-- Giveaways Tab -->
                 <section id="giveaways" class="tab-content">
-                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-gift"></i> create giveaway</h3></div><div class="card-body"><div class="form-row"><div class="form-field"><label>prize amount</label><input type="number" id="giveaway-prize" min="1" placeholder="enter amount..." class="input"></div><div class="form-field"><label>max winners</label><input type="number" id="giveaway-winners" min="1" value="1" class="input"></div></div><div class="form-row"><div class="form-field"><label>duration (hours)</label><input type="number" id="giveaway-duration" min="1" value="24" class="input"></div><div class="form-field"><label>channel</label><select id="giveaway-channel" class="input"><option value="">select channel...</option><option value="123456789">#general</option><option value="987654321">#giveaways</option></select></div></div><button class="btn btn-primary" id="create-giveaway" style="margin-top:1rem;"><i class="fas fa-rocket"></i> launch giveaway</button></div></div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-gift"></i> create giveaway</h3></div><div class="card-body"><div class="form-row"><div class="form-field"><label>prize amount</label><input type="number" id="giveaway-prize" min="1" placeholder="enter amount..." class="input"></div><div class="form-field"><label>max winners</label><input type="number" id="giveaway-winners" min="1" value="1" class="input"></div></div><div class="form-row"><div class="form-field"><label>duration (hours)</label><input type="number" id="giveaway-duration" min="1" value="24" class="input"></div><div class="form-field"><label>channel</label><select id="giveaway-channel" class="input"><option value="">select channel...</option></select></div></div><button class="btn btn-primary" id="create-giveaway" style="margin-top:1rem;"><i class="fas fa-rocket"></i> launch giveaway</button></div></div>
                     <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-bolt"></i> active giveaways</h3><span class="card-badge">live</span></div><div class="card-body"><div class="item-list" id="active-giveaways"></div></div></div>
                     <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-history"></i> history</h3></div><div class="card-body"><button class="btn btn-outline" id="load-giveaway-history"><i class="fas fa-clock"></i> load history</button><div class="item-list" id="giveaway-history-list" style="margin-top:1rem;"></div></div></div>
                 </section>
@@ -473,7 +488,7 @@
 
                 <!-- Leaderboards Tab -->
                 <section id="leaderboards" class="tab-content">
-                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-trophy"></i> server leaderboards</h3><div class="card-header-actions"><select id="leaderboard-type" class="input input--sm"><option value="xp">XP</option><option value="level">Level</option><option value="coins">Coins</option><option value="fishing">Fishing</option><option value="gambling">Gambling</option></select><button class="btn btn-outline btn-sm" id="refresh-leaderboard"><i class="fas fa-sync-alt"></i> refresh</button></div></div><div class="card-body card-body--flush"><div class="data-table-wrap" id="leaderboard-data"><table class="data-table"><thead><tr><th>Rank</th><th>User</th><th>Value</th></tr></thead><tbody id="leaderboard-body"></tbody></table></div></div></div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-trophy"></i> server leaderboards</h3><div class="card-header-actions"><button class="btn btn-outline btn-sm" id="lb-prev" title="Previous page"><i class="fas fa-chevron-left"></i></button><span id="lb-page" style="font-size:0.8rem;color:var(--fg-dim);margin:0 0.5rem;">1</span><button class="btn btn-outline btn-sm" id="lb-next" title="Next page"><i class="fas fa-chevron-right"></i></button><select id="leaderboard-type" class="input input--sm" style="margin-left:0.5rem;"><option value="xp">XP</option><option value="level">Level</option><option value="coins">Coins</option><option value="fishing">Fishing</option><option value="gambling">Gambling</option></select><button class="btn btn-outline btn-sm" id="refresh-leaderboard"><i class="fas fa-sync-alt"></i> refresh</button></div></div><div class="card-body card-body--flush"><div class="data-table-wrap" id="leaderboard-data"><table class="data-table"><thead><tr><th>Rank</th><th>User</th><th>Value</th></tr></thead><tbody id="leaderboard-body"></tbody></table></div></div></div>
                 </section>
 
                 <!-- Mod Logs Tab -->
@@ -732,5 +747,92 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script type="module" src="/js/dashboard.js"></script>
+    <script>
+    // Splash particle system (matching index)
+    (function() {
+        const canvas = document.getElementById('splashParticleCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let running = true;
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        class Particle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.speedY = (Math.random() - 0.5) * 0.3;
+                this.opacity = Math.random() * 0.5 + 0.1;
+                this.fadeSpeed = Math.random() * 0.008 + 0.002;
+                this.growing = Math.random() > 0.5;
+                const hue = 220 + Math.random() * 40;
+                this.color = `hsla(${hue}, 60%, 75%, `;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.growing) {
+                    this.opacity += this.fadeSpeed;
+                    if (this.opacity >= 0.6) this.growing = false;
+                } else {
+                    this.opacity -= this.fadeSpeed;
+                    if (this.opacity <= 0) this.reset();
+                }
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color + this.opacity.toFixed(3) + ')';
+                ctx.fill();
+            }
+        }
+        const count = window.innerWidth < 768 ? 40 : 80;
+        for (let i = 0; i < count; i++) particles.push(new Particle());
+        function animate() {
+            if (!running) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 120) {
+                        const alpha = (1 - dist / 120) * 0.08;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = `rgba(180, 167, 214, ${alpha})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+        // Stop animation when splash hides
+        const observer = new MutationObserver(() => {
+            const splash = document.getElementById('loading-splash');
+            if (splash && splash.classList.contains('hidden')) {
+                running = false;
+                observer.disconnect();
+            }
+        });
+        const splash = document.getElementById('loading-splash');
+        if (splash) observer.observe(splash, { attributes: true, attributeFilter: ['class'] });
+    })();
+    </script>
 </body>
 </html>

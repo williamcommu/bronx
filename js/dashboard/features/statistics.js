@@ -121,7 +121,22 @@ export const StatisticsMixin = {
 
     setupLeaderboardListeners() {
         document.getElementById('refresh-leaderboard')?.addEventListener('click', () => this.loadLeaderboardData());
-        document.getElementById('leaderboard-type')?.addEventListener('change', (e) => this.switchLeaderboard(e.target.value));
+        document.getElementById('leaderboard-type')?.addEventListener('change', (e) => {
+            this._lbPage = 1;
+            this._lbRetryCount = 0;
+            if (this._lbRetryTimer) clearTimeout(this._lbRetryTimer);
+            this.switchLeaderboard(e.target.value);
+        });
+        document.getElementById('lb-prev')?.addEventListener('click', () => {
+            if (this._lbPage > 1) {
+                const type = document.getElementById('leaderboard-type')?.value || 'xp';
+                this.switchLeaderboard(type, this._lbPage - 1);
+            }
+        });
+        document.getElementById('lb-next')?.addEventListener('click', () => {
+            const type = document.getElementById('leaderboard-type')?.value || 'xp';
+            this.switchLeaderboard(type, this._lbPage + 1);
+        });
     },
 
     setupModLogListeners() {
@@ -190,7 +205,7 @@ export const StatisticsMixin = {
         if (chanSelect && channels && channels.length) {
             const current = chanSelect.value;
             chanSelect.innerHTML = '<option value="">all channels</option>'
-                + channels.map(ch => `<option value="${ch.channel_id}">${ch.channel_id}</option>`).join('');
+                + channels.map(ch => `<option value="${ch.channel_id}">${ch.channel_name || ch.channel_id}</option>`).join('');
             chanSelect.value = current;
         }
 
@@ -240,7 +255,7 @@ export const StatisticsMixin = {
         }
         if (empty) empty.style.display = 'none';
         body.innerHTML = rows.slice(0, 50).map(r =>
-            `<tr><td><code>${r.channel_id}</code></td><td><code style="color:var(--accent);">${r.command}</code></td><td>${formatNumber(r.count)}</td></tr>`
+            `<tr><td><code>${r.channel_name || r.channel_id}</code></td><td><code style="color:var(--accent);">${r.command}</code></td><td>${formatNumber(r.count)}</td></tr>`
         ).join('');
     },
 
@@ -313,37 +328,100 @@ export const StatisticsMixin = {
     },
 
     // ── Leaderboard Data ───────────────────────────────────────
+    _lbPage: 1,
+    _lbPageSize: 50,
+    _lbRetryTimer: null,
+    _lbRetryCount: 0,
+    _lbMaxRetries: 10,
+    _lbActiveType: 'xp',
+    _defaultAvatarUrl: 'https://cdn.discordapp.com/embed/avatars/0.png',
+    
     async loadLeaderboardData() {
         const typeSelect = document.getElementById('leaderboard-type');
         const type = typeSelect?.value || 'xp';
+        this._lbPage = 1;
+        this._lbRetryCount = 0;
+        if (this._lbRetryTimer) clearTimeout(this._lbRetryTimer);
+        
+        // Show loading state immediately
+        const list = document.getElementById('leaderboard-body');
+        if (list) {
+            list.innerHTML = '<tr><td colspan="3" style="color:var(--fg-dim);text-align:center;padding:1.5rem;"><i class="fas fa-spinner fa-spin"></i> Loading leaderboard…</td></tr>';
+        }
+        
         this.switchLeaderboard(type);
+        
+        // Auto-refresh after 4s in case first load had unresolved users
+        this._lbRetryTimer = setTimeout(() => {
+            this.switchLeaderboard(type, 1, true);
+        }, 4000);
     },
 
-    switchLeaderboard(type) {
+    switchLeaderboard(type, page = 1, isRetry = false) {
+        this._lbPage = page;
+        this._lbActiveType = type;
+        if (!isRetry) {
+            this._lbRetryCount = 0;
+            if (this._lbRetryTimer) clearTimeout(this._lbRetryTimer);
+        } else if (type !== this._lbActiveType) {
+            // Stale retry from a previous type — cancel
+            return;
+        }
+        
         document.querySelectorAll('#leaderboards .tab-pill').forEach(p => p.classList.remove('active'));
         const clickedPill = document.querySelector(`#leaderboards .tab-pill[onclick*="${type}"]`);
         if (clickedPill) clickedPill.classList.add('active');
-        this.apiCall(`/leaderboard/${type}`).then(data => {
+        
+        const offset = (page - 1) * this._lbPageSize;
+        this.apiCall(`/leaderboard/${type}?limit=${this._lbPageSize}&offset=${offset}`).then(response => {
             const list = document.getElementById('leaderboard-body');
+            const pageEl = document.getElementById('lb-page');
+            const prevBtn = document.getElementById('lb-prev');
+            const nextBtn = document.getElementById('lb-next');
+            
+            // Handle new response format { data, unresolved, total }
+            const data = response?.data || (Array.isArray(response) ? response : []);
+            const unresolved = response?.unresolved || 0;
+            
+            if (pageEl) pageEl.textContent = page;
+            if (prevBtn) prevBtn.disabled = page <= 1;
+            if (nextBtn) nextBtn.disabled = !data || data.length < this._lbPageSize;
+            
             if (!list) return;
-            if (!data || !Array.isArray(data) || !data.length) {
+            if (!data || !data.length) {
                 list.innerHTML = '<tr><td colspan="3" style="color:var(--fg-dim);text-align:center;padding:1rem;">No entries</td></tr>';
                 return;
             }
             list.innerHTML = data.map((u, i) => {
-                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
-                const avatarUrl = u.proxy_avatar_url || u.avatar_url || `/api/proxy/avatar/${u.user_id}`;
+                const rank = offset + i + 1;
+                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+                const isLoading = u.loading === true;
+                const avatarUrl = isLoading ? '' : (u.proxy_avatar_url || u.avatar_url || `/api/proxy/avatar/${u.user_id}`);
                 const displayName = u.username || u.user_id;
+                const avatarHtml = isLoading 
+                    ? `<div style="width:24px;height:24px;border-radius:50%;background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-spinner fa-spin" style="font-size:10px;color:var(--fg-dim);"></i></div>`
+                    : `<img src="${avatarUrl}" alt="" style="width:24px;height:24px;border-radius:50%;flex-shrink:0;" loading="lazy" onerror="this.onerror=null;this.src='${this._defaultAvatarUrl}'">`;
+                const nameStyle = isLoading ? 'color:var(--fg-dim);font-style:italic;' : '';
                 return `
                 <tr>
                     <td style="font-weight:600;">${medal}</td>
                     <td style="display:flex;align-items:center;gap:0.5rem;">
-                        <img src="${avatarUrl}" alt="" style="width:24px;height:24px;border-radius:50%;flex-shrink:0;" loading="lazy" onerror="this.src='/api/proxy/avatar-default/0'">
-                        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${displayName}</span>
+                        ${avatarHtml}
+                        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${nameStyle}">${displayName}</span>
                     </td>
                     <td style="font-weight:500;">${this.formatNumber(u.value || 0)}</td>
                 </tr>`;
             }).join('');
+            
+            // Auto-retry if there are unresolved users (rate limited), with exponential backoff
+            if (unresolved > 0 && this._lbRetryCount < this._lbMaxRetries) {
+                this._lbRetryCount++;
+                // Exponential backoff: 3s, 6s, 9s... capped at 15s
+                const delay = Math.min(3000 * this._lbRetryCount, 15000);
+                this._lbRetryTimer = setTimeout(() => {
+                    this.switchLeaderboard(type, page, true);
+                }, delay);
+            }
         });
     },
 
@@ -969,7 +1047,7 @@ export const StatisticsMixin = {
             const avatarUrl = u.proxy_avatar_url || `/api/proxy/avatar/${u.user_id}`;
             return `<tr>
                 <td style="text-align:center;">${medal}</td>
-                <td style="display:flex;align-items:center;gap:0.5rem;"><img src="${avatarUrl}" alt="" style="width:20px;height:20px;border-radius:50%;" onerror="this.src='/api/proxy/avatar-default/0'">${userName}</td>
+                <td style="display:flex;align-items:center;gap:0.5rem;"><img src="${avatarUrl}" alt="" style="width:20px;height:20px;border-radius:50%;" onerror="this.onerror=null;this.src='https://cdn.discordapp.com/embed/avatars/0.png'">${userName}</td>
                 <td>${formatNumber(u.sessions)}</td>
                 <td>${formatNumber(u.channels_used)}</td>
                 <td>${this._formatDuration(u.total_minutes)}</td>
@@ -1049,7 +1127,7 @@ export const StatisticsMixin = {
         const getUserDisplay = (u) => {
             const name = u.username || `User#${String(u.user_id).slice(-4)}`;
             const avatarUrl = u.proxy_avatar_url || `/api/proxy/avatar/${u.user_id}`;
-            return `<span style="display:flex;align-items:center;gap:0.4rem;"><img src="${avatarUrl}" style="width:20px;height:20px;border-radius:50%;" onerror="this.src='/api/proxy/avatar-default/0'">${name}</span>`;
+            return `<span style="display:flex;align-items:center;gap:0.4rem;"><img src="${avatarUrl}" style="width:20px;height:20px;border-radius:50%;" onerror="this.onerror=null;this.src='https://cdn.discordapp.com/embed/avatars/0.png'">${name}</span>`;
         };
 
         // Messages table
@@ -1357,10 +1435,13 @@ export const StatisticsMixin = {
 
     async loadChannelAnalytics() {
         const range = this.channelAnalyticsRange || '7d';
-        const data = await this.apiCall(`/stats/channels/analytics?range=${range}`);
+        let data = await this.apiCall(`/stats/channels/analytics?range=${range}`);
         if (!data || !Array.isArray(data)) return;
 
-        const resolveChannel = (id) => this.resolveChannelName ? this.resolveChannelName(id) : `#${id}`;
+        // Hide channels that couldn't be resolved to a name (show as raw ID)
+        data = data.filter(ch => ch.channel_name && !/^\d+$/.test(ch.channel_name));
+
+        const resolveChannel = (ch) => ch.channel_name ? `#${ch.channel_name}` : `#${ch.channel_id}`;
 
         // Table
         const tbody = document.getElementById('channel-analytics-tbody');
@@ -1373,7 +1454,7 @@ export const StatisticsMixin = {
                 if (empty) empty.style.display = 'none';
                 tbody.innerHTML = data.map((ch, i) => `<tr>
                     <td>${i + 1}</td>
-                    <td>${resolveChannel(ch.channel_id)}</td>
+                    <td>${resolveChannel(ch)}</td>
                     <td>${formatNumber(ch.messages)}</td>
                     <td>${formatNumber(ch.edits)}</td>
                     <td>${formatNumber(ch.deletes)}</td>
@@ -1386,7 +1467,7 @@ export const StatisticsMixin = {
         const pieCanvas = document.getElementById('channel-pie-chart');
         if (pieCanvas && data.length) {
             const top10 = data.slice(0, 10);
-            const labels = top10.map(ch => resolveChannel(ch.channel_id));
+            const labels = top10.map(ch => resolveChannel(ch));
             const values = top10.map(ch => ch.messages);
             const colors = top10.map((_, i) => C.palette[i % C.palette.length]);
 
@@ -1424,8 +1505,17 @@ export const StatisticsMixin = {
                     responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { labels: { color: C.tick } } },
                     scales: {
-                        x: { stacked: true, ticks: { color: C.tick, maxRotation: 45 }, grid: { color: C.grid } },
-                        y: { stacked: true, ticks: { color: C.tick }, grid: { color: C.grid }, beginAtZero: true }
+                        x: { stacked: false, ticks: { color: C.tick, maxRotation: 45 }, grid: { color: C.grid } },
+                        y: {
+                            stacked: false,
+                            type: 'logarithmic',
+                            ticks: {
+                                color: C.tick,
+                                callback: (v) => Number.isInteger(Math.log10(v)) || [1,2,5].includes(v / Math.pow(10, Math.floor(Math.log10(v)))) ? formatNumber(v) : ''
+                            },
+                            grid: { color: C.grid },
+                            beginAtZero: false
+                        }
                     }
                 }
             });

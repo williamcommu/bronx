@@ -21,7 +21,9 @@ async function logActivity(guildId, user, source, action, options = {}) {
     }
 
     try {
-        const userId = user?.id || null;
+        // Ensure IDs are stored as strings to prevent JavaScript number precision loss
+        const guildIdStr = guildId ? String(guildId) : null;
+        const userId = user?.id ? String(user.id) : null;
         const userName = user?.global_name || user?.username || null;
         const userAvatar = user?.avatar || null;
         const { oldValue = null, newValue = null } = options;
@@ -30,7 +32,7 @@ async function logActivity(guildId, user, source, action, options = {}) {
             `INSERT INTO guild_activity_log 
              (guild_id, user_id, user_name, user_avatar, source, action, old_value, new_value)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [guildId, userId, userName, userAvatar, source, action, oldValue, newValue]
+            [guildIdStr, userId, userName, userAvatar, source, action, oldValue, newValue]
         );
     } catch (error) {
         // Log but don't throw — activity logging should never break the main operation

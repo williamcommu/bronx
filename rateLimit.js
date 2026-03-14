@@ -69,11 +69,18 @@ function rateLimit(options = {}) {
 
 // Preset rate limiters for different endpoints
 const rateLimiters = {
-    // General API: 100 requests per minute
+    // General API: 300 requests per minute (dashboard makes many concurrent calls)
     api: rateLimit({
         windowMs: 60000,
-        max: 100,
-        prefix: 'rl:api'
+        max: 300,
+        prefix: 'rl:api',
+        // Skip rate limit for auth checks and static proxy routes
+        skip: (req) => {
+            const path = req.path;
+            return path === '/auth/user' 
+                || path.startsWith('/proxy/')
+                || path === '/csrf-token';
+        }
     }),
 
     // Auth endpoints: 10 requests per minute
@@ -99,10 +106,10 @@ const rateLimiters = {
         prefix: 'rl:search'
     }),
 
-    // Leaderboard lookups: 15 requests per minute
+    // Leaderboard lookups: 60 requests per minute (supports auto-refresh for unresolved users)
     leaderboard: rateLimit({
         windowMs: 60000,
-        max: 15,
+        max: 60,
         prefix: 'rl:lb'
     }),
 

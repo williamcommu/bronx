@@ -289,23 +289,148 @@ router.delete('/api/guild/custom-prefixes', async (req, res) => {
     }
 });
 
+router.put('/api/guild/custom-prefixes', async (req, res) => {
+    try {
+        const db = getDb();
+        const { oldPrefix, newPrefix } = req.body;
+        if (!oldPrefix || !newPrefix) return res.status(400).json({ error: 'Both old and new prefix required' });
+        
+        // Update the prefix
+        await db.execute(
+            'UPDATE guild_prefixes SET prefix = ? WHERE guild_id = ? AND prefix = ?',
+            [newPrefix, req.guildId, oldPrefix]
+        );
+
+        // Log as a single "edited" activity
+        await logActivity(req.guildId, req.session?.user, 'DB',
+            `Edited prefix <b>${oldPrefix}</b> → <b>${newPrefix}</b>`,
+            { oldValue: oldPrefix, newValue: newPrefix });
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Edit prefix error:', error);
+        res.status(500).json({ error: 'Failed to edit prefix' });
+    }
+});
+
 // ── Modules ─────────────────────────────────────────────────────────────
+
+// Static module definitions with their commands
+const BOT_MODULES = {
+    economy: {
+        icon: 'fa-coins',
+        description: 'Currency, banking, shop, and trading',
+        commands: ['achievements', 'balance', 'bank', 'boosts', 'buy', 'daily', 'inv', 'item', 'lootboxes', 'market', 'passive', 'pay', 'prestige', 'rebirth', 'rob', 'sellitem', 'shop', 'supportdaily', 'supportshop', 'treasury', 'tuneprices', 'use', 'weekly', 'withdraw', 'work']
+    },
+    fishing: {
+        icon: 'fa-fish',
+        description: 'Fishing, equipment, and fish selling',
+        commands: ['autofisher', 'equip', 'finfo', 'finv', 'fish', 'lockfish', 'sellfish']
+    },
+    gambling: {
+        icon: 'fa-dice',
+        description: 'Casino games and betting',
+        commands: ['blackjack', 'bomb', 'coinflip', 'dice', 'frogger', 'jackpot', 'lottery', 'roulette', 'russian_roulette', 'slots']
+    },
+    moderation: {
+        icon: 'fa-shield-alt',
+        description: 'Server moderation tools',
+        commands: []
+    },
+    fun: {
+        icon: 'fa-laugh',
+        description: 'Entertainment commands',
+        commands: ['blacktea']
+    },
+    utility: {
+        icon: 'fa-tools',
+        description: 'Utility and management',
+        commands: ['commands', 'giveaway', 'modules', 'payout', 'reactionrole']
+    },
+    leveling: {
+        icon: 'fa-chart-line',
+        description: 'XP and level progression',
+        commands: ['levelconfig', 'levelroles', 'rank', 'xpblacklist']
+    },
+    mining: {
+        icon: 'fa-gem',
+        description: 'Mining and ore selling',
+        commands: ['mine', 'minv', 'sellore']
+    },
+    games: {
+        icon: 'fa-gamepad',
+        description: 'Interactive games',
+        commands: []
+    },
+    pets: {
+        icon: 'fa-paw',
+        description: 'Pet system',
+        commands: ['pet']
+    },
+    skills: {
+        icon: 'fa-tree',
+        description: 'Skill trees and abilities',
+        commands: ['skills']
+    },
+    challenges: {
+        icon: 'fa-tasks',
+        description: 'Daily and weekly challenges',
+        commands: ['challenges', 'streak']
+    },
+    leaderboard: {
+        icon: 'fa-trophy',
+        description: 'Rankings and leaderboards',
+        commands: ['leaderboard']
+    },
+    boss: {
+        icon: 'fa-dragon',
+        description: 'World boss fights',
+        commands: ['boss', 'event']
+    },
+    endgame: {
+        icon: 'fa-crown',
+        description: 'Endgame content',
+        commands: ['endgame']
+    },
+    guide: {
+        icon: 'fa-book',
+        description: 'Help and documentation',
+        commands: ['guide', 'help']
+    }
+};
+
+// Build flat command→module map
+const COMMAND_MODULE_MAP = {};
+for (const [mod, data] of Object.entries(BOT_MODULES)) {
+    for (const cmd of data.commands) {
+        COMMAND_MODULE_MAP[cmd] = mod;
+    }
+}
 
 router.get('/api/modules', async (req, res) => {
     try {
         const db = getDb();
-        const modules = ['economy', 'fishing', 'gambling', 'moderation', 'fun', 'utility'];
-        const moduleStates = {};
+        const guildId = req.guildId;
+        if (!guildId || guildId === 'global') return res.json([]);
 
-        for (const module of modules) {
-            const [result] = await db.execute(
-                'SELECT enabled FROM guild_module_settings WHERE guild_id = ? AND module = ?',
-                [req.guildId, module]
-            );
-            moduleStates[module] = result.length > 0 ? result[0].enabled : true;
-        }
+        // Fetch enabled states for all modules
+        const [rows] = await db.execute(
+            'SELECT module, enabled FROM guild_module_settings WHERE guild_id = ?',
+            [guildId]
+        );
+        const stateMap = {};
+        rows.forEach(r => { stateMap[r.module] = r.enabled; });
 
-        res.json(moduleStates);
+        // Return array with full module info
+        const result = Object.entries(BOT_MODULES).map(([name, data]) => ({
+            module: name,
+            icon: data.icon,
+            description: data.description,
+            commandCount: data.commands.length,
+            enabled: stateMap[name] !== undefined ? Boolean(stateMap[name]) : true
+        }));
+
+        res.json(result);
     } catch (error) {
         console.error('Modules error:', error);
         res.status(500).json({ error: 'Failed to fetch modules' });
@@ -334,40 +459,274 @@ router.post('/api/modules/toggle', async (req, res) => {
     }
 });
 
+// Get advanced settings for a module
+router.get('/api/modules/:module/settings', async (req, res) => {
+    try {
+        const db = getDb();
+        const guildId = req.guildId;
+        const moduleName = req.params.module;
+        
+        if (!BOT_MODULES[moduleName]) {
+            return res.status(404).json({ error: 'Module not found' });
+        }
+
+        // Get module enabled state and scope settings
+        const [modRows] = await db.execute(
+            'SELECT enabled FROM guild_module_settings WHERE guild_id = ? AND module = ?',
+            [guildId, moduleName]
+        );
+
+        // Get scope rules for this module
+        const [scopeRows] = await db.execute(
+            `SELECT scope_type, scope_id, enabled, exclusive 
+             FROM guild_module_scope_settings 
+             WHERE guild_id = ? AND module = ?`,
+            [guildId, moduleName]
+        );
+
+        // Get list of commands in this module with their states
+        const moduleCommands = BOT_MODULES[moduleName].commands;
+        const [cmdRows] = await db.execute(
+            `SELECT command, enabled FROM guild_command_settings 
+             WHERE guild_id = ? AND command IN (${moduleCommands.map(() => '?').join(',') || "''"})`
+            , [guildId, ...moduleCommands]
+        );
+        const cmdMap = {};
+        cmdRows.forEach(r => { cmdMap[r.command] = r.enabled; });
+
+        res.json({
+            module: moduleName,
+            info: BOT_MODULES[moduleName],
+            enabled: modRows.length > 0 ? Boolean(modRows[0].enabled) : true,
+            scopes: scopeRows.map(s => ({
+                type: s.scope_type,
+                id: s.scope_id,
+                enabled: Boolean(s.enabled),
+                exclusive: Boolean(s.exclusive)
+            })),
+            commands: moduleCommands.map(cmd => ({
+                name: cmd,
+                enabled: cmdMap[cmd] !== undefined ? Boolean(cmdMap[cmd]) : true
+            }))
+        });
+    } catch (error) {
+        console.error('Module settings error:', error);
+        res.status(500).json({ error: 'Failed to fetch module settings' });
+    }
+});
+
+// Update module scope restrictions
+router.put('/api/modules/:module/settings', async (req, res) => {
+    try {
+        const db = getDb();
+        const guildId = req.guildId;
+        const moduleName = req.params.module;
+        const { enabled, scopes } = req.body;
+
+        if (!BOT_MODULES[moduleName]) {
+            return res.status(404).json({ error: 'Module not found' });
+        }
+
+        // Update enabled state
+        if (enabled !== undefined) {
+            await db.execute(`
+                INSERT INTO guild_module_settings (guild_id, module, enabled)
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE enabled = VALUES(enabled)
+            `, [guildId, moduleName, enabled]);
+        }
+
+        // Update scope rules if provided
+        if (Array.isArray(scopes)) {
+            // Clear existing scopes
+            await db.execute(
+                'DELETE FROM guild_module_scope_settings WHERE guild_id = ? AND module = ?',
+                [guildId, moduleName]
+            );
+            // Insert new scopes
+            for (const scope of scopes) {
+                if (scope.type && scope.id) {
+                    await db.execute(`
+                        INSERT INTO guild_module_scope_settings 
+                        (guild_id, module, scope_type, scope_id, enabled, exclusive)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    `, [guildId, moduleName, scope.type, scope.id, 
+                        scope.enabled !== false, scope.exclusive || false]);
+                }
+            }
+        }
+
+        await logActivity(req.guildId, req.session?.user, 'DB',
+            formatAction('module', 'updated settings for', moduleName));
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Module settings update error:', error);
+        res.status(500).json({ error: 'Failed to update module settings' });
+    }
+});
+
 // ── Commands ────────────────────────────────────────────────────────────
 
+// Get all bot commands with their module, enabled state, and usage stats
 router.get('/api/commands', async (req, res) => {
     try {
         const db = getDb();
         const guildId = req.guildId;
         
         if (!guildId || guildId === 'global') return res.json([]);
-        
-        const [commands] = await db.execute(`
-            SELECT DISTINCT command_name as name, COUNT(*) as usage_count
+
+        // Get usage stats from last 30 days
+        const [usageRows] = await db.execute(`
+            SELECT command_name as name, COUNT(*) as usage_count
             FROM command_stats 
             WHERE guild_id = ? AND used_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-            GROUP BY command_name 
-            ORDER BY usage_count DESC
+            GROUP BY command_name
         `, [guildId]);
+        const usageMap = {};
+        usageRows.forEach(r => { usageMap[r.name] = r.usage_count; });
 
-        const commandStates = [];
-        for (const command of commands) {
-            const [result] = await db.execute(
-                'SELECT enabled FROM guild_command_settings WHERE guild_id = ? AND command = ?',
-                [guildId, command.name]
-            );
-            commandStates.push({
-                name: command.name,
-                enabled: result.length > 0 ? result[0].enabled : true,
-                usage: command.usage_count
-            });
+        // Get enabled states for all commands
+        const [stateRows] = await db.execute(
+            'SELECT command, enabled FROM guild_command_settings WHERE guild_id = ?',
+            [guildId]
+        );
+        const stateMap = {};
+        stateRows.forEach(r => { stateMap[r.command] = r.enabled; });
+
+        // Build full command list from BOT_MODULES
+        const allCommands = [];
+        for (const [moduleName, moduleData] of Object.entries(BOT_MODULES)) {
+            for (const cmdName of moduleData.commands) {
+                allCommands.push({
+                    name: cmdName,
+                    module: moduleName,
+                    moduleIcon: moduleData.icon,
+                    enabled: stateMap[cmdName] !== undefined ? Boolean(stateMap[cmdName]) : true,
+                    usage: usageMap[cmdName] || 0
+                });
+            }
         }
 
-        res.json(commandStates);
+        // Sort by usage (descending), then alphabetically
+        allCommands.sort((a, b) => {
+            if (b.usage !== a.usage) return b.usage - a.usage;
+            return a.name.localeCompare(b.name);
+        });
+
+        res.json(allCommands);
     } catch (error) {
         console.error('Commands error:', error);
         res.status(500).json({ error: 'Failed to fetch commands' });
+    }
+});
+
+// Toggle a command's enabled state
+router.post('/api/commands/toggle', async (req, res) => {
+    try {
+        const db = getDb();
+        const { command, enabled } = req.body;
+        if (!command) return res.status(400).json({ error: 'Command name required' });
+
+        await db.execute(`
+            INSERT INTO guild_command_settings (guild_id, command, enabled)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE enabled = VALUES(enabled)
+        `, [req.guildId, command, enabled]);
+
+        await logActivity(req.guildId, req.session?.user, 'DB',
+            formatAction('command', enabled ? 'enabled' : 'disabled', command));
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Command toggle error:', error);
+        res.status(500).json({ error: 'Failed to toggle command' });
+    }
+});
+
+// Get detailed config for a specific command (scopes, restrictions)
+router.get('/api/commands/:cmd/config', async (req, res) => {
+    try {
+        const db = getDb();
+        const guildId = req.guildId;
+        const cmdName = req.params.cmd;
+        const moduleName = COMMAND_MODULE_MAP[cmdName];
+
+        // Get command enabled state
+        const [cmdRows] = await db.execute(
+            'SELECT enabled FROM guild_command_settings WHERE guild_id = ? AND command = ?',
+            [guildId, cmdName]
+        );
+
+        // Get scope rules for this command (from bot's table)
+        const [scopeRows] = await db.execute(
+            `SELECT scope_type, scope_id, enabled, exclusive 
+             FROM guild_command_scope_settings 
+             WHERE guild_id = ? AND command = ?`,
+            [guildId, cmdName]
+        );
+
+        res.json({
+            command: cmdName,
+            module: moduleName || null,
+            enabled: cmdRows.length > 0 ? Boolean(cmdRows[0].enabled) : true,
+            scopes: scopeRows.map(s => ({
+                type: s.scope_type,  // 'channel', 'role', 'user'
+                id: s.scope_id,
+                enabled: Boolean(s.enabled),
+                exclusive: Boolean(s.exclusive)
+            }))
+        });
+    } catch (error) {
+        console.error('Command config error:', error);
+        res.status(500).json({ error: 'Failed to fetch command config' });
+    }
+});
+
+// Update command config (enabled + scopes)
+router.put('/api/commands/:cmd/config', async (req, res) => {
+    try {
+        const db = getDb();
+        const guildId = req.guildId;
+        const cmdName = req.params.cmd;
+        const { enabled, scopes } = req.body;
+
+        // Update enabled state
+        if (enabled !== undefined) {
+            await db.execute(`
+                INSERT INTO guild_command_settings (guild_id, command, enabled)
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE enabled = VALUES(enabled)
+            `, [guildId, cmdName, enabled]);
+        }
+
+        // Update scope rules if provided
+        if (Array.isArray(scopes)) {
+            // Clear existing scopes for this command
+            await db.execute(
+                'DELETE FROM guild_command_scope_settings WHERE guild_id = ? AND command = ?',
+                [guildId, cmdName]
+            );
+            // Insert new scopes
+            for (const scope of scopes) {
+                if (scope.type && scope.id) {
+                    await db.execute(`
+                        INSERT INTO guild_command_scope_settings 
+                        (guild_id, command, scope_type, scope_id, enabled, exclusive)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    `, [guildId, cmdName, scope.type, scope.id,
+                        scope.enabled !== false, scope.exclusive || false]);
+                }
+            }
+        }
+
+        await logActivity(req.guildId, req.session?.user, 'DB',
+            formatAction('command', 'updated config for', cmdName));
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Command config update error:', error);
+        res.status(500).json({ error: 'Failed to update command config' });
     }
 });
 
@@ -387,6 +746,24 @@ router.get('/api/scope-rules', async (req, res) => {
     } catch (error) {
         console.error('Scope rules error:', error);
         res.status(500).json({ error: 'Failed to fetch scope rules' });
+    }
+});
+
+// Get a single scope rule by ID
+router.get('/api/scope-rules/:id', async (req, res) => {
+    try {
+        const db = getDb();
+        const [rows] = await db.execute(
+            'SELECT * FROM command_scope_rules WHERE id = ? AND guild_id = ?',
+            [req.params.id, req.guildId]
+        );
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Scope rule not found' });
+        }
+        res.json(rows[0]);
+    } catch (error) {
+        console.error('Scope rule fetch error:', error);
+        res.status(500).json({ error: 'Failed to fetch scope rule' });
     }
 });
 

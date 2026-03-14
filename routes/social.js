@@ -1,10 +1,175 @@
 // Social routes: users, giveaways, reaction roles, autoroles, leaderboards
 const express = require('express');
+const axios = require('axios');
 const router = express.Router();
 
 const { getDb } = require('../db');
+const { cache: appCache, CacheTTL } = require('../cache');
 const { requireGuildAccess, requireBotOwner, isValidSnowflake, validateSnowflake } = require('../security');
 const { logActivity, formatAction } = require('../activity-logger');
+
+const DISCORD_API_BASE = 'https://discord.com/api/v10';
+
+// ── Discord Resolution Helpers ──────────────────────────────────────────
+
+/**
+ * Fetch guild members from Discord, returning a Map of userId → member info.
+ * Results are cached for 30 seconds.
+ */
+async function resolveGuildMembers(guildId) {
+    const memberMap = {};
+    try {
+        const cacheKey = `discord:members:${guildId}`;
+        let members = await appCache.get(cacheKey);
+        if (!members && process.env.DISCORD_TOKEN) {
+            console.log(`[resolveGuildMembers] Fetching members for guild ${guildId}`);
+            const resp = await axios.get(`${DISCORD_API_BASE}/guilds/${guildId}/members?limit=1000`, {
+                headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` }
+            });
+            console.log(`[resolveGuildMembers] Got ${resp.data.length} members`);
+            members = resp.data.map(m => ({
+                id: m.user.id,
+                username: m.user.username,
+                display_name: m.nick || m.user.global_name || m.user.username,
+                avatar: m.user.avatar
+            }));
+            await appCache.set(cacheKey, members, 30);
+        } else if (members) {
+            console.log(`[resolveGuildMembers] Using cached members for guild ${guildId}: ${members.length} entries`);
+        }
+        if (members) {
+            for (const m of members) memberMap[m.id] = m;
+        }
+    } catch (e) {
+        console.error('Failed to resolve guild members:', e.message, e.response?.data || '');
+    }
+    return memberMap;
+}
+
+/**
+ * Fetch specific guild members by user ID. Rate-limit aware with sequential fetching.
+ * Returns partial results immediately, marking unresolved users.
+ */
+async function resolveSpecificMembers(guildId, userIds) {
+    const memberMap = {};
+    const unresolved = [];
+    const notInGuildSet = new Set();
+    if (!userIds || userIds.length === 0 || !process.env.DISCORD_TOKEN) return { memberMap, unresolved, notInGuildSet };
+    
+    // Check cache first for each user
+    const uncachedIds = [];
+    let cacheHits = 0, notInGuildCached = 0;
+    for (const uid of userIds) {
+        const cacheKey = `discord:member:${guildId}:${uid}`;
+        const cached = await appCache.get(cacheKey);
+        if (cached === null || cached === undefined) {
+            // Not in cache - need to fetch
+            uncachedIds.push(uid);
+        } else if (cached.notInGuild === true) {
+            // Cached as "not found" - user left the guild
+            notInGuildCached++;
+            notInGuildSet.add(uid);
+        } else {
+            memberMap[uid] = cached;
+            cacheHits++;
+        }
+    }
+    
+    // Fetch uncached members sequentially with delay to avoid rate limits
+    let fetched = 0, notFound = 0, rateLimited = 0;
+    if (uncachedIds.length > 0) {
+        console.log(`[resolveSpecificMembers] Fetching ${uncachedIds.length} uncached members for guild ${guildId}`);
+    }
+    for (const uid of uncachedIds) {
+        try {
+            const resp = await axios.get(`${DISCORD_API_BASE}/guilds/${guildId}/members/${uid}`, {
+                headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` }
+            });
+            const m = resp.data;
+            const member = {
+                id: m.user.id,
+                username: m.user.username,
+                display_name: m.nick || m.user.global_name || m.user.username,
+                avatar: m.user.avatar
+            };
+            // Cache for 5 minutes
+            await appCache.set(`discord:member:${guildId}:${uid}`, member, 300);
+            memberMap[uid] = member;
+            fetched++;
+            // Small delay between requests to avoid rate limiting
+            await new Promise(r => setTimeout(r, 50));
+        } catch (e) {
+            if (e.response?.status === 429) {
+                // Rate limited - mark as unresolved so frontend can retry
+                unresolved.push(uid);
+                rateLimited++;
+            } else if (e.response?.status === 404) {
+                // User not in guild - cache with sentinel value
+                await appCache.set(`discord:member:${guildId}:${uid}`, { notInGuild: true }, 300);
+                notFound++;
+                notInGuildSet.add(uid);
+            } else {
+                unresolved.push(uid);
+                console.error(`[resolveSpecificMembers] Error fetching ${uid}:`, e.response?.status, e.message);
+            }
+        }
+    }
+    
+    console.log(`[resolveSpecificMembers] guild=${guildId}: ${Object.keys(memberMap).length}/${userIds.length} (cache:${cacheHits}, fetched:${fetched}, notInGuild:${notFound + notInGuildCached}, rateLimited:${rateLimited})`);
+    return { memberMap, unresolved, notInGuildSet };
+}
+
+/**
+ * Fetch guild channels from Discord, returning a Map of channelId → channel info.
+ * Results are cached using CacheTTL.SHORT.
+ */
+async function resolveGuildChannels(guildId) {
+    const channelMap = {};
+    try {
+        const cacheKey = `discord:channels:${guildId}`;
+        let channels = await appCache.get(cacheKey);
+        if (!channels && process.env.DISCORD_TOKEN) {
+            const resp = await axios.get(`${DISCORD_API_BASE}/guilds/${guildId}/channels`, {
+                headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` }
+            });
+            channels = resp.data
+                .filter(c => c.type === 0 || c.type === 5)
+                .map(c => ({ id: c.id, name: c.name, type: c.type }));
+            await appCache.set(cacheKey, channels, 300);
+        }
+        if (channels) {
+            for (const c of channels) channelMap[c.id] = c;
+        }
+    } catch (e) {
+        console.error('Failed to resolve guild channels:', e.message);
+    }
+    return channelMap;
+}
+
+/**
+ * Enrich a user row with Discord display name and avatar URLs.
+ * @param {Object} user - The user row from DB
+ * @param {Object} memberMap - Map of user_id -> Discord member info
+ * @param {Array} unresolved - List of user IDs that couldn't be resolved (rate limited)
+ */
+function enrichUserRow(user, memberMap, unresolved = []) {
+    const uid = String(user.user_id);
+    const member = memberMap[uid];
+    const isLoading = unresolved.includes(uid);
+    // Show "Loading..." for rate-limited users, fallback for left users
+    const fallbackName = isLoading ? 'Loading...' : `User …${uid.slice(-4)}`;
+    return {
+        ...user,
+        username: member?.display_name || member?.username || fallbackName,
+        loading: isLoading,
+        avatar_url: member?.avatar
+            ? `https://cdn.discordapp.com/avatars/${uid}/${member.avatar}.${member.avatar.startsWith('a_') ? 'gif' : 'png'}?size=64`
+            : `https://cdn.discordapp.com/embed/avatars/${(BigInt(uid) >> 22n) % 6n}.png`,
+        proxy_avatar_url: member?.avatar
+            ? `/api/proxy/avatar/${uid}?hash=${member.avatar}&size=64`
+            : `/api/proxy/avatar/${uid}`
+    };
+}
 
 // ── Users Search ────────────────────────────────────────────────────────
 
@@ -48,7 +213,10 @@ router.get('/api/users/search', async (req, res) => {
 
         const [users] = await db.execute(query, params);
         
-        const enrichedUsers = users.map(user => ({
+        // Resolve Discord display names and avatars
+        const memberMap = await resolveGuildMembers(guildId);
+
+        const enrichedUsers = users.map(user => enrichUserRow({
             guild_id: user.guild_id,
             user_id: user.user_id,
             wallet: user.wallet,
@@ -58,7 +226,7 @@ router.get('/api/users/search', async (req, res) => {
             last_active: user.last_active,
             networth: user.wallet + user.bank,
             bank_space: user.bank_limit - user.bank
-        }));
+        }, memberMap));
 
         res.json(enrichedUsers);
     } catch (error) {
@@ -115,7 +283,23 @@ router.get('/api/giveaways/active', async (req, res) => {
             ORDER BY g.ends_at ASC
         `, [guildId]);
 
-        res.json(giveaways);
+        // Resolve channel names and creator names
+        const [channelMap, memberMap] = await Promise.all([
+            resolveGuildChannels(guildId),
+            resolveGuildMembers(guildId)
+        ]);
+
+        const enriched = giveaways.map(g => {
+            const ch = channelMap[g.channel_id];
+            const creator = memberMap[g.created_by];
+            return {
+                ...g,
+                channel_name: ch ? `#${ch.name}` : null,
+                created_by_name: creator?.display_name || creator?.username || null
+            };
+        });
+
+        res.json(enriched);
     } catch (error) {
         console.error('Active giveaways error:', error);
         res.status(500).json({ error: 'Failed to fetch active giveaways' });
@@ -256,7 +440,25 @@ router.get('/api/giveaways/history', async (req, res) => {
             ORDER BY ends_at DESC 
             LIMIT 50
         `);
-        res.json(history);
+
+        // Resolve channel names for history entries
+        // Collect unique guild IDs from history rows
+        const guildIds = [...new Set(history.map(g => g.guild_id).filter(Boolean))];
+        const allChannelMaps = {};
+        await Promise.all(guildIds.map(async gid => {
+            allChannelMaps[gid] = await resolveGuildChannels(gid);
+        }));
+
+        const enrichedHistory = history.map(g => {
+            const chMap = allChannelMaps[g.guild_id] || {};
+            const ch = chMap[g.channel_id];
+            return {
+                ...g,
+                channel_name: ch ? `#${ch.name}` : null
+            };
+        });
+
+        res.json(enrichedHistory);
     } catch (error) {
         console.error('Giveaway history error:', error);
         res.json([]);
@@ -467,59 +669,31 @@ router.delete('/api/reaction-roles/:message_id', requireGuildAccess, async (req,
 // ── Leaderboard ─────────────────────────────────────────────────────────
 
 router.get('/api/leaderboard/:type', requireGuildAccess, async (req, res) => {
+    console.log(`[Leaderboard] Request for type=${req.params.type}, guild=${req.guildId}`);
     try {
         const db = getDb();
         const guildId = req.guildId;
         const { type } = req.params;
         const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+        const offset = Math.max(parseInt(req.query.offset) || 0, 0);
         
         let query = '';
         let params = [];
         
-        // For coins/fishing we need to filter by guild membership.
-        // Fetch guild member IDs first so we can scope results.
-        let memberIds = null;
-        if (type === 'coins' || type === 'balance' || type === 'fishing' || 
-            type === 'networth' || type === 'gambling') {
-            try {
-                const axios = require('axios');
-                const DISCORD_API_BASE = 'https://discord.com/api/v10';
-                const { cache: appCache } = require('../cache');
-                const cacheKey = `discord:member_ids:${guildId}`;
-                let ids = await appCache.get(cacheKey);
-                if (!ids && process.env.DISCORD_TOKEN) {
-                    const resp = await axios.get(`${DISCORD_API_BASE}/guilds/${guildId}/members?limit=1000`, {
-                        headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` }
-                    });
-                    ids = resp.data.map(m => m.user.id);
-                    await appCache.set(cacheKey, ids, 60);
-                }
-                memberIds = ids;
-            } catch (e) {
-                console.error('Failed to fetch guild members for leaderboard:', e.message);
-            }
-        }
-        
-        // Build a member filter clause for queries that need guild scoping
-        const memberFilter = (memberIds && memberIds.length > 0)
-            ? `AND user_id IN (${memberIds.map(() => '?').join(',')})`
-            : '';
-        const memberParams = (memberIds && memberIds.length > 0) ? memberIds : [];
-        
         switch (type) {
             case 'xp':
                 query = `
-                    SELECT user_id, total_xp as value, level
-                    FROM user_xp WHERE guild_id = ? AND total_xp > 0 
-                    ORDER BY total_xp DESC LIMIT ${limit}
+                    SELECT user_id, server_xp as value, server_level as level
+                    FROM server_xp WHERE guild_id = ? AND server_xp > 0
+                    ORDER BY server_xp DESC LIMIT ${limit} OFFSET ${offset}
                 `;
                 params = [guildId];
                 break;
             case 'level':
                 query = `
-                    SELECT user_id, level as value, total_xp as xp
-                    FROM user_xp WHERE guild_id = ? AND level > 1 
-                    ORDER BY level DESC, total_xp DESC LIMIT ${limit}
+                    SELECT user_id, server_level as value, server_xp as xp
+                    FROM server_xp WHERE guild_id = ? AND server_level > 1
+                    ORDER BY server_level DESC, server_xp DESC LIMIT ${limit} OFFSET ${offset}
                 `;
                 params = [guildId];
                 break;
@@ -528,10 +702,10 @@ router.get('/api/leaderboard/:type', requireGuildAccess, async (req, res) => {
             case 'networth':
                 query = `
                     SELECT user_id, wallet + COALESCE(bank, 0) as value, wallet, bank
-                    FROM users WHERE (wallet > 0 OR bank > 0) ${memberFilter}
-                    ORDER BY (wallet + COALESCE(bank, 0)) DESC LIMIT ${limit}
+                    FROM users WHERE (wallet > 0 OR bank > 0)
+                    ORDER BY (wallet + COALESCE(bank, 0)) DESC LIMIT ${limit} OFFSET ${offset}
                 `;
-                params = [...memberParams];
+                params = [];
                 break;
             case 'fishing':
                 // Try user_fish_catches first (v2), then fish_catches (v1)
@@ -540,30 +714,30 @@ router.get('/api/leaderboard/:type', requireGuildAccess, async (req, res) => {
                     await db.query('SELECT 1 FROM user_fish_catches LIMIT 1');
                     fishingQuery = `
                         SELECT user_id, SUM(value) as value, COUNT(*) as catch_count
-                        FROM user_fish_catches WHERE sold = FALSE ${memberFilter} GROUP BY user_id
+                        FROM user_fish_catches WHERE sold = FALSE GROUP BY user_id
                         HAVING value > 0
-                        ORDER BY value DESC LIMIT ${limit}
+                        ORDER BY value DESC LIMIT ${limit} OFFSET ${offset}
                     `;
                 } catch {
-                    // Fall back to fish_catches (no guild_id filter — use member scoping only)
+                    // Fall back to fish_catches (no guild_id filter)
                     fishingQuery = `
                         SELECT user_id, SUM(value) as value, COUNT(*) as catch_count
-                        FROM fish_catches WHERE 1=1 ${memberFilter} GROUP BY user_id
+                        FROM fish_catches GROUP BY user_id
                         HAVING value > 0
-                        ORDER BY value DESC LIMIT ${limit}
+                        ORDER BY value DESC LIMIT ${limit} OFFSET ${offset}
                     `;
                 }
                 query = fishingQuery;
-                params = [...memberParams];
+                params = [];
                 break;
             case 'gambling':
                 query = `
                     SELECT user_id, SUM(total_won) - SUM(total_lost) as value, SUM(games_played) as games_played
-                    FROM gambling_stats WHERE 1=1 ${memberFilter} GROUP BY user_id
+                    FROM gambling_stats GROUP BY user_id
                     HAVING value > 0
-                    ORDER BY value DESC LIMIT ${limit}
+                    ORDER BY value DESC LIMIT ${limit} OFFSET ${offset}
                 `;
-                params = [...memberParams];
+                params = [];
                 break;
             default:
                 return res.status(400).json({ error: 'Invalid leaderboard type. Valid: xp, level, coins, fishing, gambling' });
@@ -573,52 +747,21 @@ router.get('/api/leaderboard/:type', requireGuildAccess, async (req, res) => {
             ? await db.query(query, params)
             : await db.query(query);
         
-        // Resolve usernames and avatars from Discord
-        let memberMap = {};
-        try {
-            const { cache: memberCache } = require('../cache');
-            const cacheKey = `discord:members:${guildId}`;
-            let members = await memberCache.get(cacheKey);
-            if (!members && process.env.DISCORD_TOKEN) {
-                const axios = require('axios');
-                const DISCORD_API_BASE = 'https://discord.com/api/v10';
-                const resp = await axios.get(`${DISCORD_API_BASE}/guilds/${guildId}/members?limit=1000`, {
-                    headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` }
-                });
-                members = resp.data.map(m => ({
-                    id: m.user.id,
-                    username: m.user.username,
-                    display_name: m.nick || m.user.global_name || m.user.username,
-                    avatar: m.user.avatar
-                }));
-                await memberCache.set(cacheKey, members, 30);
-            }
-            if (members) {
-                for (const m of members) {
-                    memberMap[m.id] = m;
-                }
-            }
-        } catch (e) {
-            console.error('Failed to resolve member names:', e.message);
-        }
+        // Only fetch Discord info for the users we're actually showing
+        const userIds = (rows || []).map(r => String(r.user_id));
+        const { memberMap, unresolved, notInGuildSet } = await resolveSpecificMembers(guildId, userIds);
         
-        // Enrich rows with display names and avatar URLs (proxied to avoid cross-site cookie issues)
-        const enriched = (rows || []).map(row => {
-            const uid = String(row.user_id);
-            const member = memberMap[uid];
-            return {
-                ...row,
-                username: member?.display_name || member?.username || null,
-                avatar_url: member?.avatar 
-                    ? `https://cdn.discordapp.com/avatars/${uid}/${member.avatar}.${member.avatar.startsWith('a_') ? 'gif' : 'png'}?size=64`
-                    : `https://cdn.discordapp.com/embed/avatars/${(BigInt(uid) >> 22n) % 6n}.png`,
-                proxy_avatar_url: member?.avatar
-                    ? `/api/proxy/avatar/${uid}?hash=${member.avatar}&size=64`
-                    : `/api/proxy/avatar/${uid}`
-            };
+        // Enrich rows, filtering out users who left the guild
+        const enriched = (rows || [])
+            .filter(row => !notInGuildSet.has(String(row.user_id)))
+            .map(row => enrichUserRow(row, memberMap, unresolved));
+        
+        // Return with metadata so frontend knows to retry
+        res.json({
+            data: enriched,
+            unresolved: unresolved.length,
+            total: enriched.length
         });
-        
-        res.json(enriched);
     } catch (error) {
         console.error('Leaderboard fetch error:', error);
         res.status(500).json({ error: 'Failed to fetch leaderboard' });

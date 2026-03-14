@@ -79,11 +79,13 @@ export const OverviewMixin = {
         }
 
         activityList.innerHTML = activities.map(a => {
-            // New format with avatar, time, source, action
+            // New format with avatar, username, time, source, action
             if (a.avatar && a.source) {
+                const userName = a.user_name ? `<span class="activity-user">${a.user_name}</span>` : '';
                 return `
                     <div class="activity-item activity-item--rich">
-                        <img src="${a.avatar}" alt="" class="activity-avatar" onerror="this.src='/assets/default-avatar.png'">
+                        <img src="${a.avatar}" alt="" class="activity-avatar" onerror="this.onerror=null;this.src='/api/proxy/avatar-default/0'">
+                        ${userName}
                         <span class="activity-time">${a.time}</span>
                         <span class="activity-source"><em>${a.source}</em></span>
                         <span class="activity-action">${a.action}</span>
@@ -111,14 +113,17 @@ export const OverviewMixin = {
 
         const modalContent = `
             <div class="activity-modal-list">
-                ${activityData.activities.map(a => `
+                ${activityData.activities.map(a => {
+                    const userName = a.user_name ? `<span class="activity-user">${a.user_name}</span>` : '';
+                    return `
                     <div class="activity-item activity-item--rich">
-                        <img src="${a.avatar}" alt="" class="activity-avatar" onerror="this.src='/assets/default-avatar.png'">
+                        <img src="${a.avatar}" alt="" class="activity-avatar" onerror="this.onerror=null;this.src='/api/proxy/avatar-default/0'">
+                        ${userName}
                         <span class="activity-time">${a.time}</span>
                         <span class="activity-source"><em>${a.source}</em></span>
                         <span class="activity-action">${a.action}</span>
                     </div>
-                `).join('')}
+                `}).join('')}
             </div>
             ${activityData.totalPages > 1 ? `
                 <div class="activity-pagination">

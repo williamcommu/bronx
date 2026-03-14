@@ -53,6 +53,32 @@ async function resolveGuildMembers(guildId) {
 }
 
 /**
+ * Resolve Discord channel names for a guild.
+ * Returns a map of channelId → channel name string.
+ */
+async function resolveGuildChannels(guildId) {
+    const channelMap = {};
+    if (!guildId) return channelMap;
+    try {
+        const cacheKey = `discord:channels:${guildId}`;
+        let channels = await cache.get(cacheKey);
+        if (!channels && process.env.DISCORD_TOKEN) {
+            const resp = await axios.get(`${DISCORD_API_BASE}/guilds/${guildId}/channels`, {
+                headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` }
+            });
+            channels = resp.data;
+            await cache.set(cacheKey, channels, 300);
+        }
+        if (channels) {
+            for (const ch of channels) channelMap[ch.id] = ch.name;
+        }
+    } catch (e) {
+        console.warn('resolveGuildChannels failed:', e.message);
+    }
+    return channelMap;
+}
+
+/**
  * Enrich an array of objects that have a `user_id` field 
  * with `username`, `avatar_url`, and `proxy_avatar_url`.
  */
@@ -386,12 +412,11 @@ function formatTime12h(date) {
     return `${hours}:${minutes} ${ampm}`;
 }
 
-// Build Discord avatar URL (or default avatar)
+// Build Discord avatar URL via proxy (avoids 404s when hash is stale)
 function getAvatarUrl(userId, avatarHash) {
-    if (!userId) return '/assets/default-avatar.png';
+    if (!userId) return 'https://cdn.discordapp.com/embed/avatars/0.png';
     if (avatarHash) {
-        const ext = avatarHash.startsWith('a_') ? 'gif' : 'png';
-        return `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.${ext}?size=64`;
+        return `/api/proxy/avatar/${userId}?hash=${avatarHash}&size=64`;
     }
     // Default Discord avatar based on user ID
     const defaultIndex = (BigInt(userId) >> BigInt(22)) % BigInt(6);
@@ -416,13 +441,14 @@ router.get('/api/stats/recent-activity', async (req, res) => {
                 FROM guild_activity_log
                 WHERE guild_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
                 ORDER BY created_at DESC
-                LIMIT ?
-            `, [guildId, limit]);
+                LIMIT ${limit}
+            `, [guildId]);
 
             if (rows.length > 0) {
                 usedNewTable = true;
                 activities = rows.map(row => ({
                     avatar: getAvatarUrl(row.user_id, row.user_avatar),
+                    user_name: row.user_name || null,
                     time: formatTime12h(row.created_at),
                     source: row.source, // 'DB' or 'DC'
                     action: row.action,
@@ -523,11 +549,12 @@ router.get('/api/stats/recent-activity/all', async (req, res) => {
             FROM guild_activity_log
             WHERE guild_id = ?
             ORDER BY created_at DESC
-            LIMIT ? OFFSET ?
-        `, [guildId, limit, offset]);
+            LIMIT ${limit} OFFSET ${offset}
+        `, [guildId]);
 
         const activities = rows.map(row => ({
             avatar: getAvatarUrl(row.user_id, row.user_avatar),
+            user_name: row.user_name || null,
             time: formatTime12h(row.created_at),
             source: row.source,
             action: row.action
@@ -661,6 +688,13 @@ router.get('/api/stats/commands', async (req, res) => {
                 count: Number(r.total)
             }));
         } catch (e) { console.warn('stats/commands channel query failed:', e.message); }
+
+        // Resolve channel names
+        const channelMap = await resolveGuildChannels(guildId);
+        commandsByChannel = commandsByChannel.map(r => ({
+            ...r,
+            channel_name: channelMap[r.channel_id] ? `#${channelMap[r.channel_id]}` : null
+        })).filter(r => r.channel_name);
 
         let dailyTrend = [];
         try {
@@ -827,6 +861,13 @@ router.get('/api/stats/channels', async (req, res) => {
             );
             channels = rows.map(r => ({ channel_id: r.channel_id, count: Number(r.total) }));
         } catch (e) { console.warn('stats/channels query failed:', e.message); }
+
+        // Resolve channel names
+        const channelMap = await resolveGuildChannels(guildId);
+        channels = channels.map(ch => ({
+            ...ch,
+            channel_name: channelMap[ch.channel_id] ? `#${channelMap[ch.channel_id]}` : null
+        })).filter(ch => ch.channel_name);
 
         res.json(channels);
     } catch (error) {
@@ -1336,21 +1377,7 @@ router.get('/api/stats/voice', async (req, res) => {
         const memberMap = await resolveGuildMembers(guildId);
 
         // Resolve channel names from Discord
-        let channelMap = {};
-        try {
-            const channelCacheKey = `discord:channels:${guildId}`;
-            let channels = await cache.get(channelCacheKey);
-            if (!channels && process.env.DISCORD_TOKEN) {
-                const resp = await axios.get(`${DISCORD_API_BASE}/guilds/${guildId}/channels`, {
-                    headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` }
-                });
-                channels = resp.data;
-                await cache.set(channelCacheKey, channels, 120);
-            }
-            if (channels) {
-                for (const ch of channels) channelMap[ch.id] = ch.name;
-            }
-        } catch (e) { console.warn('channel name resolution failed:', e.message); }
+        const channelMap = await resolveGuildChannels(guildId);
 
         // Enrich top users
         const enrichedTopUsers = topUsers.map(u => ({
@@ -1363,7 +1390,7 @@ router.get('/api/stats/voice', async (req, res) => {
         const enrichedTopChannels = topChannels.map(ch => ({
             ...ch,
             channel_name: channelMap[ch.channel_id] || null
-        }));
+        })).filter(ch => ch.channel_name);
 
         // Enrich recent sessions
         const enrichedRecentSessions = recentSessions.map(s => ({
@@ -1609,6 +1636,13 @@ router.get('/api/stats/channels/analytics', async (req, res) => {
                 unique_users: Number(r.unique_users)
             }));
         } catch (e) { console.warn('channel analytics query failed:', e.message); }
+
+        // Resolve channel names
+        const channelMap = await resolveGuildChannels(guildId);
+        channels = channels.map(ch => ({
+            ...ch,
+            channel_name: channelMap[ch.channel_id] || null
+        })).filter(ch => ch.channel_name);
 
         res.json(channels);
     } catch (error) {

@@ -239,7 +239,7 @@ router.get('/api/suggestions', requireBotOwner, async (req, res) => {
 router.get('/api/moderation/infractions', requireGuildAccess, async (req, res) => {
     try {
         const db = getDb();
-        const guildId = req.guildId;
+        const guildId = BigInt(req.guildId);
         const page = Math.max(1, parseInt(req.query.page) || 1);
         const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 25));
         const offset = (page - 1) * limit;
@@ -270,8 +270,8 @@ router.get('/api/moderation/infractions', requireGuildAccess, async (req, res) =
         );
 
         const [infractions] = await db.execute(
-            `SELECT * FROM guild_infractions WHERE ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-            [...params, limit, offset]
+            `SELECT * FROM guild_infractions WHERE ${where} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`,
+            params
         );
 
         res.json({
@@ -429,13 +429,13 @@ router.get('/api/moderation/config', requireGuildAccess, async (req, res) => {
         if (rows.length === 0) {
             return res.json({
                 guild_id: guildId,
-                warn_points: 1,
-                timeout_points: 2,
-                kick_points: 3,
-                ban_points: 5,
-                point_decay_days: 30,
+                point_warn: 0.10,
+                point_timeout: 0.25,
+                point_mute: 0.50,
+                point_kick: 2.00,
+                point_ban: 5.00,
                 escalation_rules: '[]',
-                dm_on_infraction: true,
+                dm_on_action: true,
                 log_channel_id: null
             });
         }
@@ -453,21 +453,16 @@ router.post('/api/moderation/config', requireGuildAccess, async (req, res) => {
         const db = getDb();
         const guildId = req.guildId;
         const {
-            warn_points, timeout_points, kick_points, ban_points,
-            point_decay_days, escalation_rules, dm_on_infraction, log_channel_id
+            point_warn, point_timeout, point_mute, point_kick, point_ban,
+            escalation_rules, dm_on_action, log_channel_id
         } = req.body;
 
         // Validate points >= 0
-        const pointFields = { warn_points, timeout_points, kick_points, ban_points };
+        const pointFields = { point_warn, point_timeout, point_mute, point_kick, point_ban };
         for (const [key, val] of Object.entries(pointFields)) {
             if (val !== undefined && (typeof val !== 'number' || val < 0)) {
                 return res.status(400).json({ error: `${key} must be a non-negative number` });
             }
-        }
-
-        // Validate durations > 0
-        if (point_decay_days !== undefined && (typeof point_decay_days !== 'number' || point_decay_days <= 0)) {
-            return res.status(400).json({ error: 'point_decay_days must be a positive number' });
         }
 
         // Validate escalation_rules is valid JSON array if provided
@@ -487,26 +482,28 @@ router.post('/api/moderation/config', requireGuildAccess, async (req, res) => {
             : '[]';
 
         await db.execute(
-            `INSERT INTO guild_infraction_config (guild_id, warn_points, timeout_points, kick_points, ban_points, point_decay_days, escalation_rules, dm_on_infraction, log_channel_id)
+            `INSERT INTO guild_infraction_config
+                (guild_id, point_warn, point_timeout, point_mute, point_kick, point_ban,
+                 escalation_rules, dm_on_action, log_channel_id)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
-                warn_points = VALUES(warn_points),
-                timeout_points = VALUES(timeout_points),
-                kick_points = VALUES(kick_points),
-                ban_points = VALUES(ban_points),
-                point_decay_days = VALUES(point_decay_days),
-                escalation_rules = VALUES(escalation_rules),
-                dm_on_infraction = VALUES(dm_on_infraction),
-                log_channel_id = VALUES(log_channel_id)`,
+                point_warn        = VALUES(point_warn),
+                point_timeout     = VALUES(point_timeout),
+                point_mute        = VALUES(point_mute),
+                point_kick        = VALUES(point_kick),
+                point_ban         = VALUES(point_ban),
+                escalation_rules  = VALUES(escalation_rules),
+                dm_on_action      = VALUES(dm_on_action),
+                log_channel_id    = VALUES(log_channel_id)`,
             [
                 guildId,
-                warn_points ?? 1,
-                timeout_points ?? 2,
-                kick_points ?? 3,
-                ban_points ?? 5,
-                point_decay_days ?? 30,
+                point_warn   ?? 0.10,
+                point_timeout ?? 0.25,
+                point_mute   ?? 0.50,
+                point_kick   ?? 2.00,
+                point_ban    ?? 5.00,
                 escalationStr,
-                dm_on_infraction !== undefined ? (dm_on_infraction ? 1 : 0) : 1,
+                dm_on_action !== undefined ? (dm_on_action ? 1 : 0) : 1,
                 log_channel_id || null
             ]
         );
@@ -531,7 +528,32 @@ router.get('/api/moderation/automod', requireGuildAccess, async (req, res) => {
             [guildId]
         );
 
-        res.json(rows.length > 0 ? rows[0] : { guild_id: guildId });
+        const r = rows.length > 0 ? rows[0] : {};
+
+        // Reshape flat columns into nested structure the frontend expects
+        res.json({
+            guild_id: guildId,
+            account_age: {
+                enabled:  !!r.account_age_enabled,
+                min_days: r.account_age_days ?? 7
+            },
+            avatar: {
+                enabled:        !!r.default_avatar_enabled,
+                require_avatar: !!r.default_avatar_enabled
+            },
+            mutual_servers: {
+                enabled:    !!r.mutual_servers_enabled,
+                min_mutual: r.mutual_servers_min ?? 1
+            },
+            nickname_sanitizer: {
+                enabled:          !!r.nickname_sanitize_enabled,
+                sanitize_pattern: r.nickname_sanitize_format ?? ''
+            },
+            escalation: {
+                enabled:              !!r.infraction_escalation_enabled,
+                enabled_escalation:   !!r.infraction_escalation_enabled
+            }
+        });
     } catch (error) {
         console.error('Automod config error:', error);
         res.status(500).json({ error: 'Failed to fetch automod config' });
@@ -543,23 +565,44 @@ router.post('/api/moderation/automod', requireGuildAccess, async (req, res) => {
     try {
         const db = getDb();
         const guildId = req.guildId;
-        const fields = req.body;
 
-        const columns = Object.keys(fields);
-        const values = Object.values(fields);
-
-        if (columns.length === 0) {
-            return res.status(400).json({ error: 'No fields provided' });
-        }
-
-        const placeholders = columns.map(() => '?').join(', ');
-        const updateClauses = columns.map(c => `${c} = VALUES(${c})`).join(', ');
+        // Frontend sends nested: { account_age: { enabled, min_days }, avatar: { require_avatar }, ... }
+        // Schema stores flat columns — flatten here
+        const {
+            account_age = {},
+            avatar = {},
+            mutual_servers = {},
+            nickname_sanitizer = {},
+            escalation = {}
+        } = req.body;
 
         await db.execute(
-            `INSERT INTO guild_automod_config (guild_id, ${columns.join(', ')})
-             VALUES (?, ${placeholders})
-             ON DUPLICATE KEY UPDATE ${updateClauses}`,
-            [guildId, ...values]
+            `INSERT INTO guild_automod_config
+                (guild_id,
+                 account_age_enabled, account_age_days,
+                 default_avatar_enabled,
+                 mutual_servers_enabled, mutual_servers_min,
+                 nickname_sanitize_enabled,
+                 infraction_escalation_enabled)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                account_age_enabled           = VALUES(account_age_enabled),
+                account_age_days              = VALUES(account_age_days),
+                default_avatar_enabled        = VALUES(default_avatar_enabled),
+                mutual_servers_enabled        = VALUES(mutual_servers_enabled),
+                mutual_servers_min            = VALUES(mutual_servers_min),
+                nickname_sanitize_enabled     = VALUES(nickname_sanitize_enabled),
+                infraction_escalation_enabled = VALUES(infraction_escalation_enabled)`,
+            [
+                guildId,
+                account_age.enabled      ? 1 : 0,
+                account_age.min_days     ?? 7,
+                avatar.require_avatar    ? 1 : 0,
+                mutual_servers.enabled   ? 1 : 0,
+                mutual_servers.min_mutual ?? 1,
+                nickname_sanitizer.enabled ? 1 : 0,
+                escalation.enabled_escalation ? 1 : 0
+            ]
         );
 
         res.json({ success: true });

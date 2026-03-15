@@ -40,7 +40,6 @@ export const ModerationMixin = {
 
     // ── Data Loading ───────────────────────────────────────────
     async loadModerationData() {
-        // existing cooldown loading
         const cooldowns = await this.apiCall('/moderation/cooldowns');
         const cdBody = document.getElementById('cooldown-settings-tbody');
         if (cdBody && cooldowns) {
@@ -53,7 +52,6 @@ export const ModerationMixin = {
             `).join('');
         }
 
-        // load new sections in parallel
         await Promise.all([
             this.loadInfractionsData(),
             this.loadInfractionConfig(),
@@ -290,21 +288,25 @@ export const ModerationMixin = {
         const container = document.getElementById('infraction-config-container');
         if (!container || !config) return;
 
-        const pointValues = config.point_values || {};
-        const defaultDurations = config.default_durations || {};
-        const escalationRules = config.escalation_rules || [];
+        // Schema columns: point_warn, point_timeout, point_mute, point_kick, point_ban
+        const pointValues = {
+            warn:    config.point_warn    ?? 0.10,
+            timeout: config.point_timeout ?? 0.25,
+            mute:    config.point_mute    ?? 0.50,
+            kick:    config.point_kick    ?? 2.00,
+            ban:     config.point_ban     ?? 5.00,
+        };
+        const escalationRules = (() => {
+            try {
+                const raw = config.escalation_rules;
+                return Array.isArray(raw) ? raw : JSON.parse(raw || '[]');
+            } catch { return []; }
+        })();
 
         const pointFieldsHtml = Object.entries(pointValues).map(([type, pts]) => `
             <div class="config-field" style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
                 <label style="width:100px;font-size:0.82rem;">${esc(type)}</label>
-                <input type="number" class="input infraction-point-value" data-type="${esc(type)}" value="${pts}" min="0" style="width:80px;">
-            </div>
-        `).join('');
-
-        const durationFieldsHtml = Object.entries(defaultDurations).map(([type, dur]) => `
-            <div class="config-field" style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
-                <label style="width:100px;font-size:0.82rem;">${esc(type)}</label>
-                <input type="text" class="input infraction-default-duration" data-type="${esc(type)}" value="${esc(String(dur))}" style="width:120px;" placeholder="e.g. 24h">
+                <input type="number" step="0.01" class="input infraction-point-value" data-type="${esc(type)}" value="${pts}" min="0" style="width:80px;">
             </div>
         `).join('');
 
@@ -318,11 +320,7 @@ export const ModerationMixin = {
         container.innerHTML = `
             <div class="config-card" style="margin-bottom:1.5rem;">
                 <h4 style="font-size:0.9rem;margin-bottom:0.75rem;">point values</h4>
-                ${pointFieldsHtml || '<p style="opacity:0.6;font-size:0.82rem;">no point values configured</p>'}
-            </div>
-            <div class="config-card" style="margin-bottom:1.5rem;">
-                <h4 style="font-size:0.9rem;margin-bottom:0.75rem;">default durations</h4>
-                ${durationFieldsHtml || '<p style="opacity:0.6;font-size:0.82rem;">no default durations configured</p>'}
+                ${pointFieldsHtml}
             </div>
             <div class="config-card" style="margin-bottom:1.5rem;">
                 <h4 style="font-size:0.9rem;margin-bottom:0.75rem;">escalation rules</h4>
@@ -339,17 +337,26 @@ export const ModerationMixin = {
                     <button class="btn btn-outline btn-xs" onclick="dashboard._addEscalationRule()"><i class="fas fa-plus"></i> add</button>
                 </div>
             </div>
+            <div class="config-card" style="margin-bottom:1.5rem;">
+                <h4 style="font-size:0.9rem;margin-bottom:0.75rem;">actions</h4>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;">
+                    <input type="checkbox" id="infraction-dm-on-action" ${config.dm_on_action ? 'checked' : ''}>
+                    DM user on infraction
+                </label>
+                <div class="form-field" style="margin-top:0.75rem;">
+                    <label style="font-size:0.82rem;">log channel ID</label>
+                    <input type="text" id="infraction-log-channel" class="input" value="${esc(String(config.log_channel_id || ''))}" placeholder="channel id...">
+                </div>
+            </div>
             <button class="btn btn-primary" id="save-infraction-config"><i class="fas fa-save"></i> save config</button>
         `;
 
-        // store current escalation rules for manipulation
         this._escalationRules = [...escalationRules];
-
         document.getElementById('save-infraction-config')?.addEventListener('click', () => this.saveInfractionConfig());
     },
 
     _addEscalationRule() {
-        const threshold = parseInt(document.getElementById('new-escalation-threshold')?.value);
+        const threshold = parseFloat(document.getElementById('new-escalation-threshold')?.value);
         const action = document.getElementById('new-escalation-action')?.value;
         const duration = document.getElementById('new-escalation-duration')?.value.trim() || null;
         if (!threshold || !action) { this.toast('threshold and action are required', 'warning'); return; }
@@ -367,20 +374,20 @@ export const ModerationMixin = {
     async saveInfractionConfig() {
         const pointValues = {};
         document.querySelectorAll('.infraction-point-value').forEach(el => {
-            pointValues[el.dataset.type] = parseInt(el.value) || 0;
-        });
-
-        const defaultDurations = {};
-        document.querySelectorAll('.infraction-default-duration').forEach(el => {
-            defaultDurations[el.dataset.type] = el.value.trim();
+            pointValues[el.dataset.type] = parseFloat(el.value) || 0;
         });
 
         const res = await this.apiCall('/moderation/config', {
             method: 'POST',
             body: JSON.stringify({
-                point_values: pointValues,
-                default_durations: defaultDurations,
+                point_warn:    pointValues['warn']    ?? 0.10,
+                point_timeout: pointValues['timeout'] ?? 0.25,
+                point_mute:    pointValues['mute']    ?? 0.50,
+                point_kick:    pointValues['kick']    ?? 2.00,
+                point_ban:     pointValues['ban']     ?? 5.00,
                 escalation_rules: this._escalationRules || [],
+                dm_on_action: document.getElementById('infraction-dm-on-action')?.checked ?? true,
+                log_channel_id: document.getElementById('infraction-log-channel')?.value.trim() || null,
             }),
         });
         if (res) {
@@ -393,16 +400,17 @@ export const ModerationMixin = {
     // ── Automod Config ─────────────────────────────────────────
     async loadAutomodConfig() {
         const esc = (s) => this.escapeHtml ? this.escapeHtml(s) : this._escapeHtml(s);
+        // GET now returns nested structure: { account_age: { enabled, min_days }, ... }
         const config = await this.apiCall('/moderation/automod');
         const container = document.getElementById('automod-config-container');
         if (!container || !config) return;
 
         const features = [
-            { key: 'account_age',       label: 'account age gate',     fields: [{ name: 'min_days', label: 'minimum days', type: 'number' }] },
-            { key: 'avatar',            label: 'avatar check',         fields: [{ name: 'require_avatar', label: 'require avatar', type: 'checkbox' }] },
-            { key: 'mutual_servers',    label: 'mutual servers',       fields: [{ name: 'min_mutual', label: 'minimum mutual servers', type: 'number' }] },
-            { key: 'nickname_sanitizer', label: 'nickname sanitizer',  fields: [{ name: 'sanitize_pattern', label: 'regex pattern', type: 'text' }] },
-            { key: 'escalation',        label: 'auto escalation',      fields: [{ name: 'enabled_escalation', label: 'enable escalation', type: 'checkbox' }] },
+            { key: 'account_age',        label: 'account age gate',    fields: [{ name: 'min_days',           label: 'minimum days',           type: 'number'   }] },
+            { key: 'avatar',             label: 'avatar check',         fields: [{ name: 'require_avatar',     label: 'require avatar',         type: 'checkbox' }] },
+            { key: 'mutual_servers',     label: 'mutual servers',       fields: [{ name: 'min_mutual',         label: 'minimum mutual servers', type: 'number'   }] },
+            { key: 'nickname_sanitizer', label: 'nickname sanitizer',   fields: [{ name: 'sanitize_pattern',   label: 'regex pattern',          type: 'text'     }] },
+            { key: 'escalation',         label: 'auto escalation',      fields: [{ name: 'enabled_escalation', label: 'enable escalation',      type: 'checkbox' }] },
         ];
 
         container.innerHTML = features.map(feat => {
@@ -562,7 +570,7 @@ export const ModerationMixin = {
                 inherit_lower: document.getElementById('modal-rc-inherit')?.checked || false,
                 restrictions: {
                     allowed: (document.getElementById('modal-rc-allowed')?.value || '').split('\n').map(s => s.trim()).filter(Boolean),
-                    denied: (document.getElementById('modal-rc-denied')?.value || '').split('\n').map(s => s.trim()).filter(Boolean),
+                    denied:  (document.getElementById('modal-rc-denied')?.value  || '').split('\n').map(s => s.trim()).filter(Boolean),
                 },
             };
             if (isEdit) payload.id = existing.id;

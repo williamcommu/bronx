@@ -12,7 +12,16 @@ class CacheManager {
         this.useMemoryFallback = true;
     }
 
-    async connect() {
+    // Initialize with an existing Redis client (shared across app)
+    // or create a new one if not provided
+    async connect(sharedRedisClient = null) {
+        if (sharedRedisClient) {
+            this.redis = sharedRedisClient;
+            this.connected = this.redis && !this.redis.status?.includes('error');
+            this.useMemoryFallback = !this.connected;
+            return;
+        }
+
         const redisUrl = process.env.REDIS_URL;
         
         if (!redisUrl) {

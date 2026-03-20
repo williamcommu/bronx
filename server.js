@@ -311,7 +311,8 @@ app.use((error, req, res, next) => {
 // ── Start ───────────────────────────────────────────────────────────────
 
 async function startServer() {
-    await cache.connect();
+    // Initialize cache with shared Redis client (if available)
+    await cache.connect(redisClient);
     cache.startCleanup();
 
     await initDatabase();

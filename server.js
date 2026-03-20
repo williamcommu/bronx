@@ -5,6 +5,8 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 const session = require('express-session');
+const Redis = require('ioredis');
+const RedisStore = require('connect-redis').default;
 const cors = require('cors');
 require('dotenv').config();
 
@@ -52,6 +54,34 @@ const io = socketIo(server, {
 });
 const PORT = process.env.PORT || 3000;
 
+// ── Redis client for session storage ────────────────────────────────────
+// Use Redis instead of MemoryStore for production-safe session storage
+const redisClient = new Redis({
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD,
+    retryStrategy: (times) => {
+        const delay = Math.min(times * 50, 2000);
+        return delay;
+    },
+    enableReadyCheck: false,
+    enableOfflineQueue: false,
+    maxRetriesPerRequest: 3
+});
+
+redisClient.on('error', (err) => {
+    console.error('⚠️  Redis connection error. Falling back to MemoryStore:', err.message);
+    // Sessions will still work but won't persist across restarts
+});
+
+redisClient.on('connect', () => {
+    console.log('✓ Redis connected for session storage');
+});
+
+redisClient.on('ready', () => {
+    console.log('✓ Redis ready for session storage');
+});
+
 // Bot Owner Configuration
 const BOT_OWNER_ID = process.env.BOT_OWNER_ID || '';
 if (!BOT_OWNER_ID) {
@@ -73,6 +103,7 @@ app.use(express.static(path.join(__dirname, '.')));
 
 // Session middleware (shared with Socket.io)
 const sessionMiddleware = session({
+    store: new RedisStore({ client: redisClient, prefix: 'bronx:session:' }),
     secret: process.env.SESSION_SECRET || 'bronx-bot-dashboard-secret',
     resave: false,
     saveUninitialized: false,
@@ -80,7 +111,7 @@ const sessionMiddleware = session({
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000
+        maxAge: 24 * 60 * 60 * 1000  // 24 hours
     }
 });
 app.use(sessionMiddleware);

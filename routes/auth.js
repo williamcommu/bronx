@@ -11,7 +11,9 @@ const BOT_OWNER_ID = process.env.BOT_OWNER_ID || '';
 
 // ── Exponential Backoff Retry Helper ────────────────────────────────────
 // Handles transient errors like Cloudflare rate limits (1015, 429)
+// Maximum wait time is capped at 60 seconds to prevent hanging forever
 async function retryWithExponentialBackoff(fn, maxRetries = 5, initialDelayMs = 1000) {
+    const MAX_WAIT_MS = 60 * 1000; // Cap at 60 seconds max
     let lastError;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
@@ -32,14 +34,33 @@ async function retryWithExponentialBackoff(fn, maxRetries = 5, initialDelayMs = 
 
             if (attempt === maxRetries - 1) break; // Last attempt, don't delay
 
-            // Calculate exponential backoff: 1s, 2s, 4s, 8s, 16s...
-            const delayMs = initialDelayMs * Math.pow(2, attempt);
-            const jitter = Math.random() * delayMs * 0.1; // Add 10% jitter
-            const totalDelayMs = delayMs + jitter;
+            // Calculate exponential backoff: 2s, 4s, 8s, 16s, 32s...
+            const backoffMs = initialDelayMs * Math.pow(2, attempt);
+            const jitter = Math.random() * backoffMs * 0.1; // Add 10% jitter
+            let suggestedDelayMs = backoffMs + jitter;
 
-            const retryAfter = error.response?.headers?.['retry-after'];
-            const serverSuggestedDelayMs = retryAfter ? parseInt(retryAfter) * 1000 : null;
-            const waitMs = Math.max(totalDelayMs, serverSuggestedDelayMs || 0);
+            // Check for server-suggested delay from headers or response body
+            const retryAfterHeader = error.response?.headers?.['retry-after'];
+            const retryAfterBody = error.response?.data?.retry_after;
+            
+            if (retryAfterHeader) {
+                // retry-after header is in seconds, but could be very large
+                const headerDelaySeconds = parseInt(retryAfterHeader);
+                const headerDelayMs = headerDelaySeconds * 1000;
+                // Use header value if it's reasonable but never exceed our max
+                if (headerDelaySeconds > 0 && headerDelaySeconds <= 60) {
+                    suggestedDelayMs = headerDelayMs;
+                }
+            } else if (retryAfterBody) {
+                // Some APIs return retry_after in response body (Cloudflare, etc)
+                const bodyDelaySeconds = parseInt(retryAfterBody);
+                if (bodyDelaySeconds > 0 && bodyDelaySeconds <= 60) {
+                    suggestedDelayMs = bodyDelaySeconds * 1000;
+                }
+            }
+
+            // Cap the wait time at our maximum to prevent infinite/excessively long waits
+            const waitMs = Math.min(suggestedDelayMs, MAX_WAIT_MS);
 
             console.log(`⚠️  Attempt ${attempt + 1}/${maxRetries} failed (${status || error.code}), ` +
                         `retrying in ${(waitMs / 1000).toFixed(1)}s... ` +

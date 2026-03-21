@@ -89,7 +89,8 @@ async function getDiscordUser(accessToken) {
     try {
         const user = await retryWithExponentialBackoff(
             () => axios.get(`${DISCORD_API_BASE}/users/@me`, {
-                headers: { Authorization: `Bearer ${accessToken}` }
+                headers: { Authorization: `Bearer ${accessToken}` },
+                timeout: 10000  // 10 second timeout per request
             })
         );
         return user.data;
@@ -103,8 +104,10 @@ async function getDiscordGuilds(accessToken) {
     try {
         const guilds = await retryWithExponentialBackoff(
             () => axios.get(`${DISCORD_API_BASE}/users/@me/guilds`, {
-                headers: { Authorization: `Bearer ${accessToken}` }
+                headers: { Authorization: `Bearer ${accessToken}` },
+                timeout: 10000  // 10 second timeout per request
             })
+        );
         );
         return guilds.data;
     } catch (error) {
@@ -121,7 +124,8 @@ async function getBotGuilds() {
         }
         const botGuilds = await retryWithExponentialBackoff(
             () => axios.get(`${DISCORD_API_BASE}/users/@me/guilds`, {
-                headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` }
+                headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` },
+                timeout: 10000  // 10 second timeout per request
             })
         );
         return botGuilds.data;
@@ -185,6 +189,20 @@ router.get('/callback', async (req, res) => {
         }
     }
     
+    // Set a 20-second timeout for the entire OAuth flow to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+        if (!res.headersSent) {
+            res.status(504).send(
+                `<html><head><title>Authorization Timeout</title></head><body>
+                <h1>Authorization Timeout</h1>
+                <p>The Discord authorization took too long to complete.</p>
+                <p>This usually means Discord or your network is experiencing issues.</p>
+                <p><a href="/landing">Try again</a></p>
+                </body></html>`
+            );
+        }
+    }, 20000); // 20 seconds max
+    
     // Create a promise for this exchange and store it
     const exchangePromise = (async () => {
         try {
@@ -200,9 +218,12 @@ router.get('/callback', async (req, res) => {
                         redirect_uri: redirectUri
                     }).toString(),
                     {
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        timeout: 10000  // 10 second timeout per request
                     }
-                )
+                ),
+                3, // Reduce retries from 5 to 3 for faster failure
+                1000 // Keep initial delay at 1 second
             );
             
             const { access_token } = tokenResponse.data;
@@ -216,12 +237,8 @@ router.get('/callback', async (req, res) => {
             // Get user's guilds
             const userGuilds = await getDiscordGuilds(access_token);
             
-            // Get bot's guilds
-            const botGuilds = await getBotGuilds();
-            const botGuildIds = new Set(botGuilds.map(g => g.id));
-            
             // Include guilds where user has management permissions
-            // Mark whether the bot is present in each guild
+            // Fetch bot guilds asynchronously (don't block callback response)
             const accessibleGuilds = userGuilds.filter(guild => {
                 const perms = getUserPermissions(guild);
                 return perms.isOwner || perms.canManage || perms.canAdmin;
@@ -229,9 +246,27 @@ router.get('/callback', async (req, res) => {
                 id: guild.id,
                 name: guild.name,
                 icon: guild.icon,
-            permissions: getUserPermissions(guild),
-                botPresent: botGuildIds.has(guild.id)
+                permissions: getUserPermissions(guild),
+                botPresent: false  // Default to false, will update asynchronously
             }));
+            
+            // Fetch bot guilds asynchronously (non-blocking)
+            // This prevents timeout on production if bot token is slow
+            getBotGuilds().then(botGuilds => {
+                const botGuildIds = new Set(botGuilds.map(g => g.id));
+                // Update bot presence in session guilds
+                for (const guild of accessibleGuilds) {
+                    guild.botPresent = botGuildIds.has(guild.id);
+                }
+                // Store updated guilds back to session
+                if (req.session) {
+                    req.session.accessibleGuilds = accessibleGuilds;
+                }
+                console.log(`✓ Bot guilds updated for user ${user.id}`);
+            }).catch(err => {
+                console.warn(`⚠️  Failed to fetch bot guilds asynchronously for user ${user.id}: ${err.message}`);
+                // User can still log in even if we can't fetch bot guild list
+            });
             
             // Store in session
             req.session.user = {
@@ -257,9 +292,36 @@ router.get('/callback', async (req, res) => {
     
     try {
         await exchangePromise;
+        clearTimeout(timeoutId); // Clear timeout on success
         res.redirect('/servers');
     } catch (error) {
+        clearTimeout(timeoutId); // Clear timeout on error
         console.error('❌ OAuth2 callback error:', error.response?.data || error.message);
+        
+        // Send error response instead of hanging
+        const errorData = error.response?.data;
+        const status = error.response?.status || 500;
+        const errorMsg = errorData?.error_description || errorData?.error_name || error.message;
+        
+        if (status === 429 || errorData?.error_code === 1015) {
+            // Rate limited - suggest user wait and retry
+            return res.status(429).send(
+                `<html><head><title>Rate Limited</title></head><body>
+                <h1>Authorization Rate Limited</h1>
+                <p>Discord is temporarily rate limiting authorization requests.</p>
+                <p>Please wait 1-2 minutes and <a href="/landing">try again</a>.</p>
+                <p><small>Error: ${errorMsg}</small></p>
+                </body></html>`
+            );
+        }
+        
+        res.status(status).send(
+            `<html><head><title>Authorization Failed</title></head><body>
+            <h1>Authorization Failed</h1>
+            <p>Error: ${errorMsg}</p>
+            <p><a href="/landing">Try again</a></p>
+            </body></html>`
+        );
     }
 });
 

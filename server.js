@@ -274,6 +274,9 @@ app.get('/api/health', async (req, res) => {
 
 // ── Mount route modules ─────────────────────────────────────────────────
 
+// Rate limiting for OAuth callback to prevent hammering Discord API
+app.use('/callback', rateLimiters.auth);
+
 app.use(authRoutes);
 app.use(guildRoutes);
 app.use(statsRoutes);

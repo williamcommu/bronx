@@ -83,11 +83,11 @@ function securityHeaders(req, res, next) {
     // Content Security Policy (basic)
     res.setHeader('Content-Security-Policy', [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
         "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com",
-        "img-src 'self' data: https://cdn.discordapp.com https://discord.com",
-        "connect-src 'self' https://discord.com wss:",
+        "img-src 'self' data: https://cdn.discordapp.com https://discord.com https://www.google-analytics.com https://www.googletagmanager.com",
+        "connect-src 'self' https://discord.com https://www.google-analytics.com https://region1.google-analytics.com wss:",
         "frame-ancestors 'self'"
     ].join('; '));
     

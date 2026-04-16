@@ -188,19 +188,19 @@ router.get('/callback', async (req, res) => {
         }
     }
     
-    // Set a 20-second timeout for the entire OAuth flow to prevent infinite loading
+    // Set a 90-second timeout for the entire OAuth flow to prevent infinite loading
     const timeoutId = setTimeout(() => {
         if (!res.headersSent) {
             res.status(504).send(
                 `<html><head><title>Authorization Timeout</title></head><body>
                 <h1>Authorization Timeout</h1>
                 <p>The Discord authorization took too long to complete.</p>
-                <p>This usually means Discord or your network is experiencing issues.</p>
-                <p><a href="/landing">Try again</a></p>
+                <p>This usually happens when Discord is rate-limiting the login request.</p>
+                <p>The system is still retrying in the background. Please wait a moment and <a href="/landing">refresh</a>.</p>
                 </body></html>`
             );
         }
-    }, 20000); // 20 seconds max
+    }, 90000); // 90 seconds max
     
     // Create a promise for this exchange and store it
     const exchangePromise = (async () => {
@@ -221,7 +221,7 @@ router.get('/callback', async (req, res) => {
                         timeout: 10000  // 10 second timeout per request
                     }
                 ),
-                3, // Reduce retries from 5 to 3 for faster failure
+                5, // Increased retries from 3 back to 5 for better resilience
                 1000 // Keep initial delay at 1 second
             );
             

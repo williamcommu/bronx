@@ -4,7 +4,6 @@ const axios = require('axios');
 const router = express.Router();
 const { cache } = require('../cache');
 
-const DISCORD_API_BASE = 'https://discord.com/api/v10';
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const PORT = process.env.PORT || 3000;

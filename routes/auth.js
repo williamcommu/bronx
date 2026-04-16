@@ -108,7 +108,6 @@ async function getDiscordGuilds(accessToken) {
                 timeout: 10000  // 10 second timeout per request
             })
         );
-        );
         return guilds.data;
     } catch (error) {
         console.error('❌ Error fetching Discord guilds after retries:', error.response?.data || error.message);

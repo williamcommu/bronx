@@ -9,10 +9,15 @@ const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const PORT = process.env.PORT || 3000;
 const BOT_OWNER_ID = process.env.BOT_OWNER_ID || '';
-// Optional: proxy URL for OAuth token exchange to bypass Cloudflare IP blocks
-// Set DISCORD_OAUTH_PROXY to a Cloudflare Worker URL to route token exchanges through it
-const DISCORD_OAUTH_PROXY = process.env.DISCORD_OAUTH_PROXY || null;
-const TOKEN_EXCHANGE_URL = DISCORD_OAUTH_PROXY || `${DISCORD_API_BASE}/oauth2/token`;
+
+// Universal Discord API Proxy: If set, routes all traffic through a Cloudflare Worker
+const DISCORD_OAUTH_PROXY = process.env.DISCORD_OAUTH_PROXY ? process.env.DISCORD_OAUTH_PROXY.replace(/\/$/, '') : null;
+const DISCORD_API_BASE = DISCORD_OAUTH_PROXY || 'https://discord.com/api/v10';
+
+console.log('🛡️ [Env Check] DISCORD_OAUTH_PROXY status:', DISCORD_OAUTH_PROXY ? '✅ SET' : '❌ MISSING');
+if (DISCORD_OAUTH_PROXY) console.log('🛡️ [Env Check] Universal Proxy Active:', DISCORD_OAUTH_PROXY);
+
+const TOKEN_EXCHANGE_URL = `${DISCORD_API_BASE}/oauth2/token`;
 
 // ── Exponential Backoff Retry Helper ────────────────────────────────────
 // Handles transient errors like Cloudflare rate limits (1015, 429)
@@ -141,8 +146,9 @@ function getRedirectUri(req) {
 
 async function getDiscordUser(accessToken) {
     try {
+        const url = `${DISCORD_API_BASE}/users/@me`;
         const user = await retryWithExponentialBackoff(
-            () => axios.get(`${DISCORD_API_BASE}/users/@me`, {
+            () => axios.get(url, {
                 headers: { Authorization: `Bearer ${accessToken}` },
                 timeout: 10000  // 10 second timeout per request
             })
@@ -156,8 +162,9 @@ async function getDiscordUser(accessToken) {
 
 async function getDiscordGuilds(accessToken) {
     try {
+        const url = `${DISCORD_API_BASE}/users/@me/guilds`;
         const guilds = await retryWithExponentialBackoff(
-            () => axios.get(`${DISCORD_API_BASE}/users/@me/guilds`, {
+            () => axios.get(url, {
                 headers: { Authorization: `Bearer ${accessToken}` },
                 timeout: 10000  // 10 second timeout per request
             })
@@ -190,8 +197,9 @@ async function getBotGuilds() {
         }
         
         console.log('🌐 Fetching bot guilds from Discord API...');
+        const url = `${DISCORD_API_BASE}/users/@me/guilds`;
         const botGuilds = await retryWithExponentialBackoff(
-            () => axios.get(`${DISCORD_API_BASE}/users/@me/guilds`, {
+            () => axios.get(url, {
                 headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` },
                 timeout: 10000  // 10 second timeout per request
             })
@@ -374,6 +382,12 @@ router.get('/callback', async (req, res) => {
             const user = await getDiscordUser(access_token);
             if (!user) {
                 throw new Error('Failed to get user information');
+            }
+            
+            // Get user's guilds
+            const userGuilds = await getDiscordGuilds(access_token);
+            if (!userGuilds || userGuilds.length === 0) {
+                console.warn('⚠️  No guilds returned for user:', user.username);
             }
             
             // Get bot's guilds (using cache)

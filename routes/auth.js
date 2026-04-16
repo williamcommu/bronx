@@ -12,16 +12,16 @@ const BOT_OWNER_ID = process.env.BOT_OWNER_ID || '';
 
 // ── Exponential Backoff Retry Helper ────────────────────────────────────
 // Handles transient errors like Cloudflare rate limits (1015, 429)
-// Maximum wait time is capped at 60 seconds to prevent hanging forever
+// If server demands a long wait (>30s), bails out immediately via circuit breaker
 async function retryWithExponentialBackoff(fn, maxRetries = 5, initialDelayMs = 1000) {
     const MAX_WAIT_MS = 60 * 1000; // Cap at 60 seconds max
+    const BAIL_THRESHOLD_MS = 30 * 1000; // If server wants >30s, bail out immediately
     let lastError;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
             return await fn();
         } catch (error) {
             lastError = error;
-            // Check if error is retryable (rate limit, gateway timeout, temporary network)
             const status = error.response?.status;
             const isRateLimited = status === 429 || error.response?.data?.error_code === 1015;
             const isTemporary = status === 503 || status === 502 || status === 504 || status === 500;
@@ -29,33 +29,29 @@ async function retryWithExponentialBackoff(fn, maxRetries = 5, initialDelayMs = 
                                    error.code === 'ENOTFOUND' || error.code === 'ENETUNREACH';
 
             if (!isRateLimited && !isTemporary && !isNetworkError && attempt > 0) {
-                // Non-retryable error, throw immediately
                 throw error;
             }
 
-            if (attempt === maxRetries - 1) break; // Last attempt, don't delay
+            if (attempt === maxRetries - 1) break;
 
-            // Calculate exponential backoff: 2s, 4s, 8s, 16s, 32s...
             const backoffMs = initialDelayMs * Math.pow(2, attempt);
-            const jitter = Math.random() * backoffMs * 0.1; // Add 10% jitter
+            const jitter = Math.random() * backoffMs * 0.1;
             
-            // Extract potential wait times from various sources (Discord, Cloudflare, headers)
-            // Extract potential wait times from various sources (Discord, Cloudflare, headers)
+            // Extract wait times from response (Discord, Cloudflare, headers)
             const headers = error.response?.headers || {};
             let data = error.response?.data || {};
             
-            // Handle cases where data might be an array [ { ... } ]
             if (Array.isArray(data) && data.length > 0) {
                 data = data[0];
             }
 
-            // [DEBUG] Log the structure of the error response to find missing keys
+            // [DEBUG] Log the structure on first attempt
             if (attempt === 0) {
                 console.log(`🔍 [DEBUG] 429 Response Info: [Headers: ${Object.keys(headers).join(', ')}] [Body Keys: ${Object.keys(data).join(', ')}]`);
                 if (data.retry_after) console.log(`🔍 [DEBUG] Found retry_after in body: ${data.retry_after}`);
             }
 
-            // Fuzzy detection for wait times (bodies and headers)
+            // Fuzzy detection: find any key containing "retry", "wait_", or "reset_after"
             const findWaitValue = (obj) => {
                 if (!obj || typeof obj !== 'object') return null;
                 const keys = Object.keys(obj);
@@ -77,36 +73,43 @@ async function retryWithExponentialBackoff(fn, maxRetries = 5, initialDelayMs = 
                 const val = parseFloat(rawVal);
                 
                 if (!isNaN(val) && val > 0) {
-            // Normalize to milliseconds
-                    // If > 1000000, it's likely a timestamp (epoch seconds)
+                    // Normalize to milliseconds
                     let waitMs = 0;
                     if (val > 1000000) {
-                        waitMs = (val * 1000) - Date.now();
+                        waitMs = (val * 1000) - Date.now(); // epoch timestamp
                     } else {
-                        // If > 200, assume it's already ms, else assume seconds
-                        waitMs = val > 200 ? val : (val * 1000);
+                        waitMs = val > 200 ? val : (val * 1000); // ms vs seconds
                     }
 
                     if (waitMs > 0 && waitMs <= 120000) {
-                        suggestedDelayMs = waitMs + 2000; // Add 2s safety buffer
-                        reason = suggestedWaitHeader ? 'fuzzy header limit' : 'fuzzy body limit';
-                        reason += ` (${(waitMs / 1000).toFixed(1)}s)`;
+                        suggestedDelayMs = waitMs + 2000; // +2s safety buffer
+                        reason = suggestedWaitHeader ? 'header' : 'body';
+                        reason = `server ${reason} (${(waitMs / 1000).toFixed(1)}s)`;
 
-                        // [NEW] Set Global Circuit Breaker in Redis
-                        // This prevents OTHER concurrent users from hitting Discord during this block
+                        // Set Global Circuit Breaker in Redis
                         const blockUntil = Date.now() + suggestedDelayMs;
                         try {
-                            // Store the timestamp when it's safe to try again
                             await cache.set('bronx:oauth:throttled_until', blockUntil, Math.ceil(suggestedDelayMs / 1000));
-                            console.log(`🛡️  Circuit Breaker Active: Discord OAuth blocked for all users until ${new Date(blockUntil).toLocaleTimeString()}`);
+                            console.log(`🛡️  Circuit Breaker SET: OAuth blocked until ${new Date(blockUntil).toLocaleTimeString()}`);
                         } catch (err) {
-                            console.warn('⚠️  Failed to set global circuit breaker:', err.message);
+                            console.warn('⚠️  Failed to set circuit breaker:', err.message);
+                        }
+
+                        // BAIL OUT: If wait > 30s, don't bother retrying — the auth code
+                        // will be stale by then anyway. Throw a special error so /callback
+                        // can show the user a friendly cooldown page immediately.
+                        if (suggestedDelayMs > BAIL_THRESHOLD_MS) {
+                            const waitSec = Math.ceil(suggestedDelayMs / 1000);
+                            console.log(`🛑  Bail-out: Server wants ${waitSec}s wait (>${BAIL_THRESHOLD_MS/1000}s threshold). Aborting retries.`);
+                            const bailError = new Error(`CIRCUIT_BREAKER:${waitSec}`);
+                            bailError.isCircuitBreaker = true;
+                            bailError.waitSeconds = waitSec;
+                            throw bailError;
                         }
                     }
                 }
             }
 
-            // Cap the wait time at our maximum to prevent infinite/excessively long waits
             const waitMs = Math.min(suggestedDelayMs, MAX_WAIT_MS);
 
             console.log(`⚠️  Attempt ${attempt + 1}/${maxRetries} failed (${status || error.code}). ` +
@@ -371,15 +374,69 @@ router.get('/callback', async (req, res) => {
         res.redirect('/servers');
     } catch (error) {
         clearTimeout(timeoutId); // Clear timeout on error
+        
+        // Circuit Breaker bail-out: show cooldown page immediately
+        if (error.isCircuitBreaker) {
+            const waitSec = error.waitSeconds || 60;
+            console.log(`🛡️  Serving cooldown page to user (${waitSec}s wait)`);
+            return res.status(429).send(`
+                <!DOCTYPE html>
+                <html><head><title>Authorization Cooldown</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { background: #0d0d0d; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                           display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 20px; }
+                    .container { max-width: 480px; }
+                    .icon { font-size: 4rem; margin-bottom: 1rem; }
+                    h1 { color: #ff6b6b; font-size: 1.8rem; margin-bottom: 0.5rem; }
+                    .subtitle { color: #aaa; font-size: 1.1rem; margin-bottom: 1.5rem; line-height: 1.5; }
+                    .countdown { font-size: 3rem; font-weight: bold; color: #5865F2; margin: 1rem 0;
+                                 font-variant-numeric: tabular-nums; }
+                    .countdown span { color: #888; font-size: 1rem; font-weight: normal; }
+                    .retry-btn { display: inline-block; margin-top: 1.5rem; padding: 14px 32px; background: #5865F2;
+                                 color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem;
+                                 font-weight: 600; text-decoration: none; transition: all 0.2s; }
+                    .retry-btn:hover { background: #4752c4; transform: translateY(-1px); }
+                    .retry-btn:disabled { background: #333; cursor: not-allowed; transform: none; }
+                    .hint { margin-top: 1rem; color: #666; font-size: 0.85rem; }
+                </style>
+                </head><body>
+                <div class="container">
+                    <div class="icon">🛡️</div>
+                    <h1>Authorization Cooldown</h1>
+                    <p class="subtitle">Discord is rate-limiting login requests from our server.<br>
+                    The system is cooling down to protect service quality.</p>
+                    <div class="countdown" id="timer">${waitSec}<span>s</span></div>
+                    <button class="retry-btn" id="retryBtn" disabled onclick="window.location.href='/auth/login'">Please Wait...</button>
+                    <p class="hint">This is temporary. The countdown will enable the retry button automatically.</p>
+                </div>
+                <script>
+                    let remaining = ${waitSec};
+                    const timer = document.getElementById('timer');
+                    const btn = document.getElementById('retryBtn');
+                    const interval = setInterval(() => {
+                        remaining--;
+                        timer.innerHTML = remaining + '<span>s</span>';
+                        if (remaining <= 0) {
+                            clearInterval(interval);
+                            timer.innerHTML = '0<span>s</span>';
+                            btn.disabled = false;
+                            btn.textContent = 'Retry Login';
+                            btn.style.background = '#5865F2';
+                        }
+                    }, 1000);
+                </script>
+                </body></html>
+            `);
+        }
+
         console.error('❌ OAuth2 callback error:', error.response?.data || error.message);
         
-        // Send error response instead of hanging
         const errorData = error.response?.data;
         const status = error.response?.status || 500;
         const errorMsg = errorData?.error_description || errorData?.error_name || error.message;
         
         if (status === 429 || errorData?.error_code === 1015) {
-            // Rate limited - suggest user wait and retry
             return res.status(429).send(
                 `<html><head><title>Rate Limited</title></head><body>
                 <h1>Authorization Rate Limited</h1>

@@ -9,7 +9,6 @@ Allow: /sitemap
 Disallow: /dashboard
 Disallow: /owner
 Disallow: /servers
-# Disallow attempts to access known sensitive files – honeypot will serve Bee script
 
 
 Sitemap: https://bronxbot.xyz/sitemap.xml

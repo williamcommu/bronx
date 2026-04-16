@@ -40,40 +40,57 @@ async function retryWithExponentialBackoff(fn, maxRetries = 5, initialDelayMs = 
             const jitter = Math.random() * backoffMs * 0.1; // Add 10% jitter
             
             // Extract potential wait times from various sources (Discord, Cloudflare, headers)
+            // Extract potential wait times from various sources (Discord, Cloudflare, headers)
             const headers = error.response?.headers || {};
-            const data = error.response?.data || {};
+            let data = error.response?.data || {};
             
-            // Priority 1: Cloudflare or Discord suggested body property
-            const retryAfterBody = data.retry_after || data.retry_after_ms || data.retry_after_seconds;
-            
-            // Priority 2: Standard or X-RateLimit headers
-            const retryAfterHeader = headers['retry-after'] || headers['x-ratelimit-reset-after'];
+            // Handle cases where data might be an array [ { ... } ]
+            if (Array.isArray(data) && data.length > 0) {
+                data = data[0];
+            }
+
+            // [DEBUG] Log the structure of the error response to find missing keys
+            if (attempt === 0) {
+                console.log(`🔍 [DEBUG] 429 Response Info: [Headers: ${Object.keys(headers).join(', ')}] [Body Keys: ${Object.keys(data).join(', ')}]`);
+                if (data.retry_after) console.log(`🔍 [DEBUG] Found retry_after in body: ${data.retry_after}`);
+            }
+
+            // Fuzzy detection for wait times (bodies and headers)
+            const findWaitValue = (obj) => {
+                if (!obj || typeof obj !== 'object') return null;
+                const keys = Object.keys(obj);
+                const waitKey = keys.find(k => {
+                    const low = k.toLowerCase();
+                    return low.includes('retry') || low.includes('wait_') || low.includes('reset_after');
+                });
+                return waitKey ? obj[waitKey] : null;
+            };
+
+            const suggestedWaitBody = findWaitValue(data);
+            const suggestedWaitHeader = findWaitValue(headers);
 
             let suggestedDelayMs = backoffMs + jitter;
             let reason = 'exponential backoff';
 
-            if (retryAfterHeader) {
-                const headerVal = parseFloat(retryAfterHeader);
-                if (!isNaN(headerVal) && headerVal > 0) {
-                    // Discord 'retry-after' is in seconds (floating point)
-                    // Discord 'x-ratelimit-reset-after' is in seconds since epoch or relative seconds
-                    // We assume relative seconds if < 1000000
-                    const waitSeconds = headerVal > 1000000 ? (headerVal - Date.now()/1000) : headerVal;
-                    if (waitSeconds > 0 && waitSeconds <= 120) {
-                        suggestedDelayMs = (waitSeconds * 1000) + 1000; // Add 1s safety buffer
-                        reason = `server header (${waitSeconds}s)`;
+            if (suggestedWaitHeader || suggestedWaitBody) {
+                const rawVal = suggestedWaitHeader || suggestedWaitBody;
+                const val = parseFloat(rawVal);
+                
+                if (!isNaN(val) && val > 0) {
+                    // Normalize to milliseconds
+                    // If > 1000000, it's likely a timestamp (epoch seconds)
+                    let waitMs = 0;
+                    if (val > 1000000) {
+                        waitMs = (val * 1000) - Date.now();
+                    } else {
+                        // If > 200, assume it's already ms, else assume seconds
+                        waitMs = val > 200 ? val : (val * 1000);
                     }
-                }
-            } else if (retryAfterBody) {
-                const bodyVal = parseFloat(retryAfterBody);
-                if (!isNaN(bodyVal) && bodyVal > 0) {
-                    // Cloudflare 1015 'retry_after' is in seconds
-                    // Some Discord JSON responses are in seconds, some in ms
-                    // If the value is > 500, we assume it's ms, else seconds
-                    const waitMs = bodyVal > 500 ? bodyVal : (bodyVal * 1000);
+
                     if (waitMs > 0 && waitMs <= 120000) {
                         suggestedDelayMs = waitMs + 2000; // Add 2s safety buffer
-                        reason = `server body (${(waitMs/1000).toFixed(1)}s)`;
+                        reason = suggestedWaitHeader ? 'fuzzy header limit' : 'fuzzy body limit';
+                        reason += ` (${(waitMs / 1000).toFixed(1)}s)`;
                     }
                 }
             }
@@ -83,7 +100,7 @@ async function retryWithExponentialBackoff(fn, maxRetries = 5, initialDelayMs = 
 
             console.log(`⚠️  Attempt ${attempt + 1}/${maxRetries} failed (${status || error.code}). ` +
                         `Waiting ${(waitMs / 1000).toFixed(1)}s (${reason})... ` +
-                        `[${error.response?.data?.error_name || error.message}]`);
+                        `[${data.error_name || data.message || error.message}]`);
 
             await new Promise(resolve => setTimeout(resolve, waitMs));
         }

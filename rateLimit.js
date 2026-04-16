@@ -83,10 +83,10 @@ const rateLimiters = {
         }
     }),
 
-    // Auth endpoints: 10 requests per minute
+    // Auth endpoints: 100 requests per minute (increased from 10 to prevent blocking users during Discord auth retries)
     auth: rateLimit({
         windowMs: 60000,
-        max: 10,
+        max: 100,
         prefix: 'rl:auth',
         message: 'Too many authentication attempts, please wait.'
     }),

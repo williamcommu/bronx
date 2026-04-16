@@ -38,34 +38,52 @@ async function retryWithExponentialBackoff(fn, maxRetries = 5, initialDelayMs = 
             // Calculate exponential backoff: 2s, 4s, 8s, 16s, 32s...
             const backoffMs = initialDelayMs * Math.pow(2, attempt);
             const jitter = Math.random() * backoffMs * 0.1; // Add 10% jitter
-            let suggestedDelayMs = backoffMs + jitter;
-
-            // Check for server-suggested delay from headers or response body
-            const retryAfterHeader = error.response?.headers?.['retry-after'];
-            const retryAfterBody = error.response?.data?.retry_after;
             
+            // Extract potential wait times from various sources (Discord, Cloudflare, headers)
+            const headers = error.response?.headers || {};
+            const data = error.response?.data || {};
+            
+            // Priority 1: Cloudflare or Discord suggested body property
+            const retryAfterBody = data.retry_after || data.retry_after_ms || data.retry_after_seconds;
+            
+            // Priority 2: Standard or X-RateLimit headers
+            const retryAfterHeader = headers['retry-after'] || headers['x-ratelimit-reset-after'];
+
+            let suggestedDelayMs = backoffMs + jitter;
+            let reason = 'exponential backoff';
+
             if (retryAfterHeader) {
-                // retry-after header is in seconds, but could be very large
-                const headerDelaySeconds = parseInt(retryAfterHeader);
-                const headerDelayMs = headerDelaySeconds * 1000;
-                // Use header value if it's reasonable but never exceed our max
-                if (headerDelaySeconds > 0 && headerDelaySeconds <= 60) {
-                    suggestedDelayMs = headerDelayMs;
+                const headerVal = parseFloat(retryAfterHeader);
+                if (!isNaN(headerVal) && headerVal > 0) {
+                    // Discord 'retry-after' is in seconds (floating point)
+                    // Discord 'x-ratelimit-reset-after' is in seconds since epoch or relative seconds
+                    // We assume relative seconds if < 1000000
+                    const waitSeconds = headerVal > 1000000 ? (headerVal - Date.now()/1000) : headerVal;
+                    if (waitSeconds > 0 && waitSeconds <= 120) {
+                        suggestedDelayMs = (waitSeconds * 1000) + 1000; // Add 1s safety buffer
+                        reason = `server header (${waitSeconds}s)`;
+                    }
                 }
             } else if (retryAfterBody) {
-                // Some APIs return retry_after in response body (Cloudflare, etc)
-                const bodyDelaySeconds = parseInt(retryAfterBody);
-                if (bodyDelaySeconds > 0 && bodyDelaySeconds <= 60) {
-                    suggestedDelayMs = bodyDelaySeconds * 1000;
+                const bodyVal = parseFloat(retryAfterBody);
+                if (!isNaN(bodyVal) && bodyVal > 0) {
+                    // Cloudflare 1015 'retry_after' is in seconds
+                    // Some Discord JSON responses are in seconds, some in ms
+                    // If the value is > 500, we assume it's ms, else seconds
+                    const waitMs = bodyVal > 500 ? bodyVal : (bodyVal * 1000);
+                    if (waitMs > 0 && waitMs <= 120000) {
+                        suggestedDelayMs = waitMs + 2000; // Add 2s safety buffer
+                        reason = `server body (${(waitMs/1000).toFixed(1)}s)`;
+                    }
                 }
             }
 
             // Cap the wait time at our maximum to prevent infinite/excessively long waits
             const waitMs = Math.min(suggestedDelayMs, MAX_WAIT_MS);
 
-            console.log(`⚠️  Attempt ${attempt + 1}/${maxRetries} failed (${status || error.code}), ` +
-                        `retrying in ${(waitMs / 1000).toFixed(1)}s... ` +
-                        `(${error.response?.data?.error_name || error.message})`);
+            console.log(`⚠️  Attempt ${attempt + 1}/${maxRetries} failed (${status || error.code}). ` +
+                        `Waiting ${(waitMs / 1000).toFixed(1)}s (${reason})... ` +
+                        `[${error.response?.data?.error_name || error.message}]`);
 
             await new Promise(resolve => setTimeout(resolve, waitMs));
         }

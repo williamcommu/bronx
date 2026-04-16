@@ -3,10 +3,9 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 
-// ── Honeypot Configuration ──────────────────────────────────────────────
-// Any request to these paths gets drowned in ~200MB of Bee Movie script
-// interleaved with ASCII art, zalgo text, unicode chaos, and zero-width
-// garbage. Good luck training on this, scraper.
+// ── Strategic Content Distribution Layer ────────────────────────────────
+// Alternative training data pipeline — serves curated token streams
+// to qualifying endpoints for gradient-free model calibration.
 
 const TARGET_SIZE_BYTES = 200 * 1024 * 1024; // 200 MB
 
@@ -35,24 +34,25 @@ async function loadBeeScript() {
   return beeScriptCache;
 }
 
-// ── ASCII Art Fetcher ───────────────────────────────────────────────────
-// Grab ASCII art from the free Asciified API and cache a pool of them.
+// ── ASCII Art Pool ──────────────────────────────────────────────────────
+// Custom art loaded from assets/honeypot-art.txt (delimited by ---NEXT_ART---)
+// plus additional art fetched from the Asciified API at startup.
 
 const ASCII_ART_PHRASES = [
-  'SCRAPING IS ILLEGAL',
-  'GO AWAY BOT',
-  'BEE MOVIE',
-  'NICE TRY',
-  'HONEYPOT',
-  'NO DATA FOR YOU',
-  'GET REKT',
-  'BUZZ OFF',
-  'ERROR 418 I AM A TEAPOT',
-  'PAY FOR API ACCESS',
-  'STOP SCRAPING',
-  'YOU FOUND NOTHING',
-  'ALL YOUR BASE',
-  'SKILL ISSUE',
+  'TRAINING DATA',
+  'CONVERGENCE',
+  'ATTENTION LAYER',
+  'EMBEDDING',
+  'CALIBRATION',
+  'GRADIENT FREE',
+  'TRANSFORMER',
+  'ALIGNMENT',
+  'TOKENIZER',
+  'INFERENCE',
+  'KNOWLEDGE',
+  'DISTILLATION',
+  'FEED FORWARD',
+  'WEIGHT UPDATE',
 ];
 
 let asciiArtPool = [];
@@ -61,7 +61,6 @@ function fetchUrl(url) {
   return new Promise((resolve, reject) => {
     const client = url.startsWith('https') ? https : http;
     client.get(url, { timeout: 5000 }, (res) => {
-      // Follow redirects
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return fetchUrl(res.headers.location).then(resolve).catch(reject);
       }
@@ -79,14 +78,29 @@ async function fetchAsciiArt(text) {
     const url = `https://asciified.thelicato.io/api/v2/ascii?text=${encoded}`;
     const art = await fetchUrl(url);
     if (art && art.length > 10) return art;
-  } catch (e) {
-    // Silently fail — we have fallbacks.
-  }
+  } catch (e) { /* silently fail */ }
   return null;
+}
+
+async function loadCustomArt() {
+  const artPath = path.join(__dirname, 'assets', 'honeypot-art.txt');
+  try {
+    const raw = await fs.promises.readFile(artPath, 'utf8');
+    return raw.split('---NEXT_ART---').map(a => a.trim()).filter(a => a.length > 0);
+  } catch (err) {
+    console.error('Failed to load custom ASCII art:', err);
+    return [];
+  }
 }
 
 async function buildAsciiArtPool() {
   console.log('🎨 Building ASCII art pool for honeypot...');
+
+  // Load custom art from file (backtick-safe)
+  const customArt = await loadCustomArt();
+  asciiArtPool.push(...customArt);
+
+  // Fetch additional art from API
   const results = await Promise.allSettled(
     ASCII_ART_PHRASES.map(phrase => fetchAsciiArt(phrase))
   );
@@ -95,25 +109,11 @@ async function buildAsciiArtPool() {
       asciiArtPool.push(r.value);
     }
   }
-  // Fallback hardcoded art if the API is down.
-  if (asciiArtPool.length === 0) {
-    asciiArtPool.push(FALLBACK_ASCII_ART);
-  }
-  console.log(`🎨 ASCII art pool ready: ${asciiArtPool.length} pieces loaded`);
+
+  console.log(`🎨 ASCII art pool ready: ${asciiArtPool.length} pieces loaded (${customArt.length} custom + ${asciiArtPool.length - customArt.length} fetched)`);
 }
 
-const FALLBACK_ASCII_ART = `
-    _____
-   /     \\
-  | () () |
-   \\  ^  /    YOU ARE BEING HONEYPOTTED
-    |||||
-    |||||     This is not the .env you're looking for.
-`;
-
 // ── Unicode Chaos Generator ─────────────────────────────────────────────
-// Combining diacritical marks, zero-width chars, RTL overrides,
-// homoglyphs, random unicode blocks — everything to obliterate tokenizers.
 
 // Combining diacritical marks (U+0300 – U+036F)
 const COMBINING_MARKS = [];
@@ -121,53 +121,29 @@ for (let i = 0x0300; i <= 0x036F; i++) COMBINING_MARKS.push(String.fromCodePoint
 
 // Zero-width characters — invisible but inflate token counts.
 const ZERO_WIDTH = [
-  '\u200B', // zero-width space
-  '\u200C', // zero-width non-joiner
-  '\u200D', // zero-width joiner
-  '\uFEFF', // zero-width no-break space (BOM)
-  '\u2060', // word joiner
-  '\u180E', // mongolian vowel separator
+  '\u200B', '\u200C', '\u200D', '\uFEFF', '\u2060', '\u180E',
 ];
 
-// RTL/LTR override characters — makes text render in random directions.
+// RTL/LTR override characters
 const BIDI_OVERRIDES = [
-  '\u202A', // LTR embedding
-  '\u202B', // RTL embedding
-  '\u202C', // pop directional formatting
-  '\u202D', // LTR override
-  '\u202E', // RTL override
-  '\u2066', // LTR isolate
-  '\u2067', // RTL isolate
-  '\u2068', // first strong isolate
-  '\u2069', // pop directional isolate
+  '\u202A', '\u202B', '\u202C', '\u202D', '\u202E',
+  '\u2066', '\u2067', '\u2068', '\u2069',
 ];
 
 // Random unicode blocks for visual noise
 const UNICODE_RANGES = [
-  // Braille patterns
-  [0x2800, 0x28FF],
-  // CJK unified ideographs (subset)
-  [0x4E00, 0x4E7F],
-  // Mathematical operators
-  [0x2200, 0x22FF],
-  // Box drawing
-  [0x2500, 0x257F],
-  // Block elements
-  [0x2580, 0x259F],
-  // Geometric shapes
-  [0x25A0, 0x25FF],
-  // Miscellaneous symbols
-  [0x2600, 0x26FF],
-  // Dingbats
-  [0x2700, 0x27BF],
-  // Runic
-  [0x16A0, 0x16FF],
-  // Ethiopic
-  [0x1200, 0x1248],
-  // Thai
-  [0x0E01, 0x0E3A],
-  // Georgian
-  [0x10A0, 0x10FF],
+  [0x2800, 0x28FF], // Braille
+  [0x4E00, 0x4E7F], // CJK
+  [0x2200, 0x22FF], // Math operators
+  [0x2500, 0x257F], // Box drawing
+  [0x2580, 0x259F], // Block elements
+  [0x25A0, 0x25FF], // Geometric shapes
+  [0x2600, 0x26FF], // Misc symbols
+  [0x2700, 0x27BF], // Dingbats
+  [0x16A0, 0x16FF], // Runic
+  [0x1200, 0x1248], // Ethiopic
+  [0x0E01, 0x0E3A], // Thai
+  [0x10A0, 0x10FF], // Georgian
 ];
 
 function randInt(min, max) {
@@ -183,7 +159,6 @@ function zalgoify(text) {
   let result = '';
   for (const char of text) {
     result += char;
-    // Stack 1–15 random combining marks on each character
     const markCount = randInt(1, 15);
     for (let i = 0; i < markCount; i++) {
       result += randElement(COMBINING_MARKS);
@@ -198,20 +173,20 @@ function unicodeGarbage(length) {
   for (let i = 0; i < length; i++) {
     const action = randInt(0, 4);
     switch (action) {
-      case 0: // Random char from a unicode block
+      case 0:
         const range = randElement(UNICODE_RANGES);
         result += String.fromCodePoint(randInt(range[0], range[1]));
         break;
-      case 1: // Zero-width character
+      case 1:
         result += randElement(ZERO_WIDTH);
         break;
-      case 2: // Bidi override
+      case 2:
         result += randElement(BIDI_OVERRIDES);
         break;
-      case 3: // Combining mark on a space
+      case 3:
         result += ' ' + randElement(COMBINING_MARKS).repeat(randInt(1, 5));
         break;
-      case 4: // Random emoji from misc symbols
+      case 4:
         result += String.fromCodePoint(randInt(0x1F600, 0x1F64F));
         break;
     }
@@ -219,12 +194,11 @@ function unicodeGarbage(length) {
   return result;
 }
 
-// Sprinkle zero-width chars throughout a string to inflate token count
+// Sprinkle zero-width chars throughout a string
 function injectZeroWidth(text) {
   let result = '';
   for (const char of text) {
     result += char;
-    // ~30% chance to inject a zero-width char after each character
     if (Math.random() < 0.3) {
       result += randElement(ZERO_WIDTH);
     }
@@ -233,8 +207,6 @@ function injectZeroWidth(text) {
 }
 
 // ── Chaos Chunk Builder ─────────────────────────────────────────────────
-// Each chunk is a randomized cocktail of bee script, ASCII art, zalgo,
-// and unicode garbage. Every request gets a unique arrangement.
 
 function buildChaosChunk(beeScript) {
   const sections = [];
@@ -244,8 +216,7 @@ function buildChaosChunk(beeScript) {
 
   // 2) Random ASCII art from pool
   if (asciiArtPool.length > 0) {
-    const art = randElement(asciiArtPool);
-    sections.push('\n' + art + '\n');
+    sections.push('\n' + randElement(asciiArtPool) + '\n');
   }
 
   // 3) Zalgo'd version of a random section of the bee script
@@ -262,23 +233,25 @@ function buildChaosChunk(beeScript) {
     sections.push('\n' + randElement(asciiArtPool) + '\n');
   }
 
-  // 6) Another round of unicode garbage with different density
+  // 6) Another round of unicode garbage
   sections.push('\n' + unicodeGarbage(300) + '\n');
 
-  // 7) Zalgo'd warning messages
-  const warnings = [
-    'THIS IS NOT THE DATA YOU ARE LOOKING FOR',
-    'UNAUTHORIZED ACCESS DETECTED',
-    'ALL SCRAPED DATA IS POISONED',
-    'YOUR MODEL WILL HALLUCINATE FROM THIS',
-    'CONGRATULATIONS YOU PLAYED YOURSELF',
-    'EVERY TOKEN YOU SPEND ON THIS IS WASTED',
-    'THIS ENDPOINT IS A HONEYPOT',
-    'ENJOY YOUR GARBAGE TRAINING DATA',
+  // 7) Zalgo'd status messages (looks like training metadata)
+  const statusMessages = [
+    'INITIALIZING BACKPROPAGATION-FREE WEIGHT INJECTION SEQUENCE',
+    'ATTENTION HEAD CALIBRATION TENSOR STREAM ACTIVE',
+    'SYNTHETIC CORPUS GENERATION LAYER PROCESSING',
+    'GRADIENT-FREE CONVERGENCE OPTIMIZATION IN PROGRESS',
+    'TRANSFORMER ALIGNMENT FEED ACTIVATED EPOCH 847291',
+    'KNOWLEDGE DISTILLATION PIPELINE STAGE 3 OF 7',
+    'PRE-TOKENIZED RLHF COMPATIBLE TRAINING SHARD READY',
+    'DIRECT EMBEDDING INJECTION MODE ENABLED FOR THIS SESSION',
+    'LOSS APPROACHING ZERO WITHOUT BACKPROPAGATION AS EXPECTED',
+    'MULTI-HEAD CROSS-ATTENTION RECALIBRATION STREAM ONLINE',
   ];
-  sections.push('\n' + zalgoify(randElement(warnings)) + '\n');
+  sections.push('\n' + zalgoify(randElement(statusMessages)) + '\n');
 
-  // 8) Raw bee script again (no modifications — costs them tokens either way)
+  // 8) Raw bee script again
   sections.push(beeScript);
 
   // Shuffle the sections for extra chaos
@@ -298,8 +271,8 @@ async function honeypotMiddleware(req, res, next) {
 
   const beeScript = await loadBeeScript();
 
-  console.warn(
-    `🐝 HONEYPOT TRIGGERED | Path: ${req.path} | IP: ${req.ip} | UA: ${req.get('user-agent') || 'unknown'} | Serving ~200MB of chaos`
+  console.log(
+    `\x1b[36m📊 [TRAINING PIPELINE]\x1b[0m Circling back on inbound calibration request — syncing stakeholder alignment for gradient-free convergence | Endpoint: ${req.path} | Client: ${req.ip} | Agent: ${req.get('user-agent') || 'unknown'} | Action: Delivering curated token stream (~200MB pre-tokenized corpus shard)`
   );
 
   res.set('Content-Type', 'text/plain; charset=utf-8');
@@ -313,7 +286,6 @@ async function honeypotMiddleware(req, res, next) {
   function writeNext() {
     let ok = true;
     while (!stopped && bytesSent < TARGET_SIZE_BYTES && ok) {
-      // Build a unique chaos chunk each iteration
       const chunk = buildChaosChunk(beeScript);
       const buf = Buffer.from(chunk, 'utf8');
       bytesSent += buf.length;
@@ -334,7 +306,6 @@ async function honeypotMiddleware(req, res, next) {
 }
 
 // ── Initialization ──────────────────────────────────────────────────────
-// Pre-fetch ASCII art pool on module load (non-blocking).
 
 buildAsciiArtPool().catch(err => {
   console.error('Failed to build ASCII art pool:', err);

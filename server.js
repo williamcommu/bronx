@@ -242,6 +242,14 @@ app.get('/privacy', (req, res) => {
     res.sendFile(path.join(__dirname, 'html/privacy.html'));
 });
 
+app.get('/tos', (req, res) => {
+    res.sendFile(path.join(__dirname, 'html/tos.html'));
+});
+
+app.get('/api-docs', (req, res) => {
+    res.sendFile(path.join(__dirname, 'html/api-docs.html'));
+});
+
 app.get('/sitemap', (req, res) => {
     res.sendFile(path.join(__dirname, 'html/sitemap.html'));
 });

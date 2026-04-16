@@ -1,53 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>bronx | Advanced Discord Economy, Gambling & Mining Bot</title>
-    
+
     <!-- Favicons -->
     <link rel="icon" type="image/png" href="/assets/avatar.png">
     <link rel="apple-touch-icon" href="/assets/avatar.png">
-    
+
     <!-- Google Analytics (gtag.js) -->
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      
-      // Default consent mode (denied until user accepts)
-      gtag('consent', 'default', {
-        'analytics_storage': 'denied'
-      });
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+
+        // Default consent mode (denied until user accepts)
+        gtag('consent', 'default', {
+            'analytics_storage': 'denied'
+        });
     </script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-QKVTVN4PCX"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-QKVTVN4PCX');
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-QKVTVN4PCX');
     </script>
 
     <!-- SEO Meta Tags -->
-    <meta name="description" content="Elevate your Discord server with bronx, a high-performance C++ bot featuring a deep economy system, immersive gambling, fishing, mining, and advanced moderation tools.">
-    <meta name="keywords" content="discord economy bot, gambling bot, fishing bot, mining bot, bronx bot, C++ discord bot, discord utilities, moderation bot, level system discord">
+    <meta name="description"
+        content="Elevate your Discord server with bronx, a high-performance C++ bot featuring a deep economy system, immersive gambling, fishing, mining, and advanced moderation tools.">
+    <meta name="keywords"
+        content="discord economy bot, gambling bot, fishing bot, mining bot, bronx bot, C++ discord bot, discord utilities, moderation bot, level system discord">
     <meta name="author" content="bronx">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://bronxbot.xyz">
-    
+
     <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="bronx | Advanced Discord Economy & Gambling Bot">
-    <meta property="og:description" content="Immersive economy, gambling, fishing, and mining for your Discord server. Built for performance and stability.">
+    <meta property="og:title" content="bronx">
+    <meta property="og:description"
+        content="Immersive economy, gambling, fishing, and mining for your Discord server. Built for performance and stability.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://bronxbot.xyz">
     <meta property="og:image" content="https://bronxbot.xyz/assets/avatar.png">
     <meta property="og:site_name" content="bronx">
-    
+
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="bronx | Advanced Discord Economy Bot">
-    <meta name="twitter:description" content="The ultimate economy and gambling experience on Discord. Fast, stable, and feature-rich.">
+    <meta name="twitter:description"
+        content="The ultimate economy and gambling experience on Discord. Fast, stable, and feature-rich.">
     <meta name="twitter:image" content="https://bronxbot.xyz/assets/avatar.png">
-    
+
     <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
     {
@@ -72,10 +77,11 @@
 
     <!-- Theme Color -->
     <meta name="theme-color" content="#b4a7d6">
-    
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
 </head>
+
 <body>
     <!-- Floating Nav -->
     <nav class="floating-nav" id="floatingNav">
@@ -89,8 +95,10 @@
             <div class="nav-links" id="navLinks">
                 <a href="#features">features</a>
                 <a href="#commands">commands</a>
+                <a href="/api-docs">api docs</a>
                 <a href="#" id="nav-invite-btn" class="nav-btn">invite</a>
-                <a href="/login" id="nav-login-btn" class="nav-btn nav-btn-secondary"><i class="fab fa-discord"></i> log in</a>
+                <a href="/login" id="nav-login-btn" class="nav-btn nav-btn-secondary"><i class="fab fa-discord"></i> log
+                    in</a>
             </div>
         </div>
     </nav>
@@ -134,21 +142,24 @@
                     <i class="fas fa-chevron-down feature-card-indicator"></i>
                     <div class="feature-icon"><i class="fas fa-coins"></i></div>
                     <h3 class="feature-title">economy</h3>
-                    <p class="feature-desc">balance, banking, daily rewards, work, prestige, rebirth, pets, skill trees, crafting, mastery.</p>
+                    <p class="feature-desc">balance, banking, daily rewards, work, prestige, rebirth, pets, skill trees,
+                        crafting, mastery.</p>
                 </div>
 
                 <div class="feature-card">
                     <i class="fas fa-chevron-down feature-card-indicator"></i>
                     <div class="feature-icon"><i class="fas fa-dice"></i></div>
                     <h3 class="feature-title">gambling</h3>
-                    <p class="feature-desc">blackjack, slots, coinflip, dice, roulette, frogger, crash, poker, bomb, lottery.</p>
+                    <p class="feature-desc">blackjack, slots, coinflip, dice, roulette, frogger, crash, poker, bomb,
+                        lottery.</p>
                 </div>
 
                 <div class="feature-card">
                     <i class="fas fa-chevron-down feature-card-indicator"></i>
                     <div class="feature-icon"><i class="fas fa-fish"></i></div>
                     <h3 class="feature-title">fishing</h3>
-                    <p class="feature-desc">catch fish, crews, autofisher, fishdex collection, lockfish, mastery bonuses.</p>
+                    <p class="feature-desc">catch fish, crews, autofisher, fishdex collection, lockfish, mastery
+                        bonuses.</p>
                 </div>
 
                 <div class="feature-card">
@@ -176,14 +187,16 @@
                     <i class="fas fa-chevron-down feature-card-indicator"></i>
                     <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
                     <h3 class="feature-title">leveling</h3>
-                    <p class="feature-desc">xp system, level roles, rank cards, xp blacklists, configurable per server.</p>
+                    <p class="feature-desc">xp system, level roles, rank cards, xp blacklists, configurable per server.
+                    </p>
                 </div>
 
                 <div class="feature-card">
                     <i class="fas fa-chevron-down feature-card-indicator"></i>
                     <div class="feature-icon"><i class="fas fa-tools"></i></div>
                     <h3 class="feature-title">utilities</h3>
-                    <p class="feature-desc">user info, server info, avatars, banners, polls, reaction roles, giveaways, snipe.</p>
+                    <p class="feature-desc">user info, server info, avatars, banners, polls, reaction roles, giveaways,
+                        snipe.</p>
                 </div>
 
                 <div class="feature-card">
@@ -222,7 +235,7 @@
         <div class="container">
             <h2 class="section-title" data-reveal="up">commands</h2>
             <div class="command-categories">
-                
+
                 <!-- Economy Commands -->
                 <div class="category" id="cat-economy">
                     <div class="category-header">
@@ -1063,15 +1076,46 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
-            <div class="footer-content">
-                <div class="footer-links">
-                    <a href="https://github.com/brainboxdotcc/DPP" class="footer-link" target="_blank">uses dpp</a>
-                    <a href="https://github.com/williamcommu/bronxsite" class="footer-link" target="_blank">source code</a>
-                    <a href="https://discord.gg/bronx" class="footer-link" target="_blank">support server</a>
-                    <a href="https://discord.com/oauth2/authorize?client_id=828380019406929962&permissions=7610260541407217&integration_type=0&scope=bot+applications.commands" class="footer-link" target="_blank">invite link</a>
-                    <a href="/privacy" class="footer-link">privacy policy</a>
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="#" class="footer-logo">bronx</a>
+                    <p>Elevate your Discord server with advanced economy, immersive gambling, and modular utilities.
+                        Built with C++ for maximum performance.</p>
                 </div>
-                <p>&copy; 2026 bronx</p>
+                <div class="footer-column">
+                    <h3>Product</h3>
+                    <div class="footer-links">
+                        <a href="/landing" class="footer-link"><i class="fas fa-home"></i> Home</a>
+                        <a href="#features" class="footer-link"><i class="fas fa-star"></i> Features</a>
+                        <a href="#commands" class="footer-link"><i class="fas fa-terminal"></i> Commands</a>
+                        <a href="/guide" class="footer-link"><i class="fas fa-book"></i> Guide</a>
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h3>Social</h3>
+                    <div class="footer-links">
+                        <a href="https://discord.gg/bronx" class="footer-link" target="_blank"><i
+                                class="fab fa-discord"></i> Support Server</a>
+                        <a href="https://discord.com/oauth2/authorize?client_id=828380019406929962&permissions=7610260541407217&integration_type=0&scope=bot+applications.commands"
+                            class="footer-link" target="_blank"><i class="fas fa-robot"></i> Invite Bronx</a>
+                        <a href="/servers" class="footer-link"><i class="fas fa-columns"></i> Dashboard</a>
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h3>Legal & Dev</h3>
+                    <div class="footer-links">
+                        <a href="/privacy" class="footer-link"><i class="fas fa-user-shield"></i> Privacy Policy</a>
+                        <a href="/tos" class="footer-link"><i class="fas fa-file-contract"></i> Terms of Service</a>
+                        <a href="/api-docs" class="footer-link"><i class="fas fa-code"></i> API Docs</a>
+                        <a href="/sitemap" class="footer-link"><i class="fas fa-sitemap"></i> Sitemap</a>
+                        <a href="https://github.com/williamcommu/bronxsite" class="footer-link" target="_blank"><i
+                                class="fab fa-github"></i> Source Code</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 bronx. All rights reserved.</p>
+                <p>Built by <a href="https://github.com/williamcommu" style="color: inherit;">williamcommu</a></p>
             </div>
         </div>
     </footer>
@@ -1106,7 +1150,8 @@
     <div id="consent-banner" class="consent-banner">
         <div class="consent-content">
             <h3>Privacy Choices</h3>
-            <p>We use cookies to improve your experience and analyze our traffic. Let us know if you're okay with this!</p>
+            <p>We use cookies to improve your experience and analyze our traffic. Let us know if you're okay with this!
+            </p>
         </div>
         <div class="consent-buttons">
             <button id="consent-okay" class="btn btn-primary">Okay</button>
@@ -1116,4 +1161,5 @@
 
     <script src="/js/consent.js"></script>
 </body>
+
 </html>

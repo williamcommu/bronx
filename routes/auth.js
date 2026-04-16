@@ -77,7 +77,7 @@ async function retryWithExponentialBackoff(fn, maxRetries = 5, initialDelayMs = 
                 const val = parseFloat(rawVal);
                 
                 if (!isNaN(val) && val > 0) {
-                    // Normalize to milliseconds
+            // Normalize to milliseconds
                     // If > 1000000, it's likely a timestamp (epoch seconds)
                     let waitMs = 0;
                     if (val > 1000000) {
@@ -91,6 +91,17 @@ async function retryWithExponentialBackoff(fn, maxRetries = 5, initialDelayMs = 
                         suggestedDelayMs = waitMs + 2000; // Add 2s safety buffer
                         reason = suggestedWaitHeader ? 'fuzzy header limit' : 'fuzzy body limit';
                         reason += ` (${(waitMs / 1000).toFixed(1)}s)`;
+
+                        // [NEW] Set Global Circuit Breaker in Redis
+                        // This prevents OTHER concurrent users from hitting Discord during this block
+                        const blockUntil = Date.now() + suggestedDelayMs;
+                        try {
+                            // Store the timestamp when it's safe to try again
+                            await cache.set('bronx:oauth:throttled_until', blockUntil, Math.ceil(suggestedDelayMs / 1000));
+                            console.log(`🛡️  Circuit Breaker Active: Discord OAuth blocked for all users until ${new Date(blockUntil).toLocaleTimeString()}`);
+                        } catch (err) {
+                            console.warn('⚠️  Failed to set global circuit breaker:', err.message);
+                        }
                     }
                 }
             }
@@ -234,6 +245,27 @@ router.get('/callback', async (req, res) => {
     
     if (!code) {
         return res.status(400).send('Authorization code not provided');
+    }
+
+    // [NEW] Global Circuit Breaker Check
+    try {
+        const throttledUntil = await cache.get('bronx:oauth:throttled_until');
+        if (throttledUntil) {
+            const waitSeconds = Math.ceil((parseInt(throttledUntil) - Date.now()) / 1000);
+            if (waitSeconds > 0) {
+                console.log(`🛡️  Circuit Breaker Tripped: Rejecting OAuth attempt for all users (Discord cooldown active for ${waitSeconds}s)`);
+                return res.status(429).send(`
+                    <div style="background: #1a1a1a; color: white; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; text-align: center; padding: 20px;">
+                        <h1 style="color: #ff4757;">Authorization Cooldown</h1>
+                        <p style="font-size: 1.2rem;">Discord is currently rate-limiting login attempts for all users.</p>
+                        <p style="color: #ffa502;">System is cooling down to protect our servers. Please wait <strong>${waitSeconds} seconds</strong> and try again.</p>
+                        <button onclick="location.reload()" style="margin-top: 20px; padding: 12px 24px; background: #5865F2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Retry Now</button>
+                    </div>
+                `);
+            }
+        }
+    } catch (err) {
+        console.warn('⚠️  Circuit Breaker Check Failed:', err.message);
     }
     
     // Check if this code is already being exchanged

@@ -146,7 +146,7 @@ class BronxBotDashboard {
                 if (data.authenticated) {
                     this.isAuthenticated = true;
                     this.user = data.user;
-                    this.userGuilds = data.guilds || [];
+                    this.userGuilds = (data.guilds || []).filter(g => g && g.id && g.id !== 'undefined' && g.id !== 'null');
                     this.isBotOwner = data.isBotOwner || false;
                     return true;
                 }
@@ -176,7 +176,7 @@ class BronxBotDashboard {
 
         const urlParams = new URLSearchParams(window.location.search);
         const serverId = urlParams.get('server');
-        if (serverId) {
+        if (serverId && serverId !== 'undefined' && serverId !== 'null') {
             this.selectedServerId = serverId;
             const isMember = this.userGuilds.some(g => g.id === serverId);
             if (isMember) {
@@ -426,6 +426,15 @@ class BronxBotDashboard {
             const tab = li.getAttribute('data-tab');
             if (tab !== 'overview' && tab !== 'statistics' && tab !== 'leaderboards') {
                 li.style.display = 'none';
+            }
+        });
+
+        // Hide empty categories
+        document.querySelectorAll('.nav-group').forEach(group => {
+            const items = group.querySelectorAll('.nav-item');
+            const visibleItems = Array.from(items).filter(item => item.style.display !== 'none');
+            if (visibleItems.length === 0) {
+                group.style.display = 'none';
             }
         });
 

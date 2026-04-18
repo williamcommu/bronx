@@ -78,6 +78,7 @@
                 return (a.name || '').localeCompare(b.name || '');
             });
 
+            allGuilds = allGuilds.filter(g => g && g.id && g.id !== 'undefined' && g.id !== 'null');
             renderGuilds(allGuilds);
             hide(loadingState);
             show(serversState);
@@ -104,6 +105,10 @@
 
         const frag = document.createDocumentFragment();
         for (const guild of guilds) {
+            if (!guild.id) {
+                console.warn('Skipping guild with missing ID:', guild);
+                continue;
+            }
             const botPresent = guild.botPresent !== false;
             const card = document.createElement('a');
             card.href = botPresent
@@ -112,6 +117,7 @@
             if (!botPresent) card.target = '_blank';
             card.className = 'server-card' + (botPresent ? '' : ' server-card--no-bot');
             card.dataset.name = (guild.name || '').toLowerCase();
+            card.dataset.id = guild.id;
 
             // Icon
             const iconWrap = document.createElement('div');

@@ -132,8 +132,13 @@ async function requireGuildAccess(req, res, next) {
 
         if (isPublicRoute) {
             const db = require('./db').getDb();
-            const [rows] = await db.execute('SELECT public_stats FROM guild_settings WHERE guild_id = ?', [guildId]);
-            if (rows[0]?.public_stats === 1) {
+            const [rows] = await db.execute('SELECT public_stats, global_stats FROM guild_settings WHERE guild_id = ?', [guildId]);
+            const settings = rows[0] || {};
+            
+            // Access granted if global_stats is APPROVED (2), 
+            // OR if public_stats is enabled (currently restricted to members in auth.js, 
+            // but here we mark it as accessible to guests if they have the link).
+            if (settings.global_stats === 2 || settings.public_stats === 1) {
                 req.guildId = guildId;
                 req.isPublicGuest = true;
                 return next();

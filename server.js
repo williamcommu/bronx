@@ -208,12 +208,12 @@ app.use('/api', async (req, res, next) => {
         try {
             const db = getDb();
             const cacheKey = `guild:public_stats:${guildId}`;
-            let isPublic = cache.get(cacheKey);
+            let isPublic = await cache.get(cacheKey);
             
-            if (isPublic === undefined) {
+            if (isPublic === null) {
                 const [rows] = await db.execute('SELECT public_stats FROM guild_settings WHERE guild_id = ?', [guildId]);
-                isPublic = rows.length > 0 && !!rows[0].public_stats;
-                cache.set(cacheKey, isPublic, 300); // Cache for 5 mins
+                isPublic = rows.length > 0 && rows[0].public_stats === 1;
+                await cache.set(cacheKey, isPublic, 300); // Cache for 5 mins
             }
             
             if (isPublic) return next();

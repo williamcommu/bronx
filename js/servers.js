@@ -59,12 +59,18 @@
                 
                 // Merge public guilds that user isn't already a member of or doesn't have access to
                 publicGuilds.forEach(pub => {
-                    if (!allGuilds.find(g => g.id === pub.id)) {
+                    const existing = allGuilds.find(g => g.id === pub.id);
+                    if (!existing) {
                         allGuilds.push({
                             ...pub,
-                            botPresent: true, // Always true for public stats listing
-                            isPublicShowcase: true
+                            botPresent: true,
+                            isGlobalDiscovery: true
                         });
+                    } else {
+                        // Mark linked guilds as also being global
+                        existing.isGlobalDiscovery = true;
+                        existing.rating = pub.rating;
+                        existing.trend = pub.trend;
                     }
                 });
             } catch (e) {
@@ -197,13 +203,14 @@
             info.appendChild(nameContainer);
             info.appendChild(roleRow);
 
-            // Showcase or Invite badge
-            if (guild.isPublicShowcase) {
+            // Global Discovery or Invite badge
+            if (guild.isGlobalDiscovery) {
                 const badge = document.createElement('span');
                 badge.className = 'server-card-invite-badge';
-                badge.style.background = 'var(--accent-dim)';
-                badge.style.color = 'var(--accent)';
-                badge.innerHTML = '<i class="fas fa-eye"></i> public stats';
+                badge.style.background = 'rgba(168, 85, 247, 0.15)'; // Purple-ish
+                badge.style.color = '#a855f7';
+                badge.style.border = '1px solid rgba(168, 85, 247, 0.3)';
+                badge.innerHTML = '<i class="fas fa-globe"></i> global discovery';
                 card.appendChild(iconWrap);
                 card.appendChild(info);
                 card.appendChild(badge);

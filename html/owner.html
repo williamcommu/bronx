@@ -66,6 +66,7 @@
         <button class="tab-btn" data-tab="ml"><i class="fas fa-brain"></i> ML config</button>
         <button class="tab-btn" data-tab="lists"><i class="fas fa-list"></i> lists</button>
         <button class="tab-btn" data-tab="economy"><i class="fas fa-coins"></i> economy</button>
+        <button class="tab-btn" data-tab="discovery"><i class="fas fa-globe"></i> discovery</button>
         <button class="tab-btn" data-tab="deployments"><i class="fas fa-rocket"></i> deployments</button>
 
     </nav>
@@ -308,6 +309,21 @@
                             <input type="text" id="wl-reason" placeholder="Reason" class="input">
                             <button class="btn btn-outline btn-sm" id="add-wl">add</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Discovery Tab (Global Discovery Approval) -->
+        <section id="tab-discovery" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-globe"></i> pending global discovery requests</h3>
+                    <button class="btn btn-outline btn-sm" id="refresh-discovery"><i class="fas fa-sync-alt"></i></button>
+                </div>
+                <div class="card-body">
+                    <div class="item-list" id="discovery-requests-list">
+                        <p class="text-muted">no pending requests</p>
                     </div>
                 </div>
             </div>

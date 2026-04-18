@@ -18,7 +18,7 @@ const DISCORD_API_BASE = 'https://discord.com/api/v10';
  */
 async function fetchGuildMetadata(guildId) {
     const cacheKey = cache.key('guild', 'metadata', guildId);
-    const cached = cache.get(cacheKey);
+    const cached = await cache.get(cacheKey);
     if (cached) return cached;
 
     if (!process.env.DISCORD_TOKEN) return { id: guildId, name: 'Unknown Server' };
@@ -32,7 +32,7 @@ async function fetchGuildMetadata(guildId) {
             name: response.data.name,
             icon: response.data.icon
         };
-        cache.set(cacheKey, data, CacheTTL.LONG);
+        await cache.set(cacheKey, data, CacheTTL.LONG);
         return data;
     } catch (error) {
         console.warn(`Failed to fetch metadata for guild ${guildId}:`, error.message);
@@ -45,7 +45,7 @@ router.get('/api/discord/channels', requireGuildAccess, async (req, res) => {
         const guildId = req.guildId;
         const cacheKey = `discord:channels:${guildId}`;
         
-        const cached = cache.get(cacheKey);
+        const cached = await cache.get(cacheKey);
         if (cached) return res.json(cached);
         
         if (!process.env.DISCORD_TOKEN) {
@@ -67,7 +67,7 @@ router.get('/api/discord/channels', requireGuildAccess, async (req, res) => {
                 position: c.position
             }));
         
-        cache.set(cacheKey, channels, CacheTTL.SHORT);
+        await cache.set(cacheKey, channels, CacheTTL.SHORT);
         res.json(channels);
     } catch (error) {
         console.error('Discord channels fetch error:', error.response?.data || error.message);
@@ -80,7 +80,7 @@ router.get('/api/discord/roles', requireGuildAccess, async (req, res) => {
         const guildId = req.guildId;
         const cacheKey = `discord:roles:${guildId}`;
         
-        const cached = cache.get(cacheKey);
+        const cached = await cache.get(cacheKey);
         if (cached) return res.json(cached);
         
         if (!process.env.DISCORD_TOKEN) {
@@ -103,7 +103,7 @@ router.get('/api/discord/roles', requireGuildAccess, async (req, res) => {
                 permissions: r.permissions
             }));
         
-        cache.set(cacheKey, roles, CacheTTL.SHORT);
+        await cache.set(cacheKey, roles, CacheTTL.SHORT);
         res.json(roles);
     } catch (error) {
         console.error('Discord roles fetch error:', error.response?.data || error.message);
@@ -116,7 +116,7 @@ router.get('/api/discord/members', requireGuildAccess, async (req, res) => {
         const guildId = req.guildId;
         const cacheKey = `discord:members:${guildId}`;
         
-        const cached = cache.get(cacheKey);
+        const cached = await cache.get(cacheKey);
         if (cached) return res.json(cached);
         
         if (!process.env.DISCORD_TOKEN) {
@@ -135,7 +135,7 @@ router.get('/api/discord/members', requireGuildAccess, async (req, res) => {
             bot: m.user.bot || false
         }));
         
-        cache.set(cacheKey, members, 30000);
+        await cache.set(cacheKey, members, 30000);
         res.json(members);
     } catch (error) {
         console.error('Discord members fetch error:', error.response?.data || error.message);
@@ -157,7 +157,7 @@ router.get('/api/guild/settings', async (req, res) => {
         const cacheKey = cache.key('guild', 'settings', req.guildId);
         const settings = await cache.getOrSet(cacheKey, async () => {
             const [rows] = await db.execute('SELECT * FROM guild_settings WHERE guild_id = ?', [req.guildId]);
-            return rows[0] || { prefix: 'bb ', logging_enabled: false, logging_channel: null, public_stats: 0 };
+            return rows[0] || { prefix: 'bb ', logging_enabled: false, logging_channel: null, public_stats: 0, global_stats: 0 };
         }, CacheTTL.GUILD_SETTINGS);
 
         // Enrich with guild metadata for public/guest access
@@ -178,26 +178,37 @@ router.get('/api/guild/settings', async (req, res) => {
 router.put('/api/guild/settings', async (req, res) => {
     try {
         const db = getDb();
-        const { prefix, logging_enabled, logging_channel, public_stats } = req.body;
+        const { prefix, logging_enabled, logging_channel, public_stats, global_stats } = req.body;
 
         if (req.guildId === 'global') {
             return res.status(400).json({ error: 'Cannot modify global settings' });
         }
 
         // Get old settings for activity log
-        const [oldRows] = await db.execute('SELECT prefix, public_stats FROM guild_settings WHERE guild_id = ?', [req.guildId]);
+        const [oldRows] = await db.execute('SELECT prefix, public_stats, global_stats FROM guild_settings WHERE guild_id = ?', [req.guildId]);
         const oldPrefix = oldRows[0]?.prefix || 'b.';
         const oldPublicStats = oldRows[0]?.public_stats || 0;
+        const oldGlobalStats = oldRows[0]?.global_stats || 0;
+
+        // Determine global_stats state:
+        // If toggled OFF, set to 0.
+        // If toggled ON, and it was 0 or 1, set to 1 (Pending).
+        // If it was already 2 (Approved), keep it as 2 (Active).
+        let newGlobalState = 0;
+        if (global_stats) {
+            newGlobalState = (oldGlobalStats === 2) ? 2 : 1;
+        }
 
         await db.execute(`
-            INSERT INTO guild_settings (guild_id, prefix, logging_enabled, logging_channel, public_stats)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO guild_settings (guild_id, prefix, logging_enabled, logging_channel, public_stats, global_stats)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 prefix = VALUES(prefix),
                 logging_enabled = VALUES(logging_enabled),
                 logging_channel = VALUES(logging_channel),
-                public_stats = VALUES(public_stats)
-        `, [req.guildId, prefix, logging_enabled ? 1 : 0, logging_channel, public_stats ? 1 : 0]);
+                public_stats = VALUES(public_stats),
+                global_stats = VALUES(global_stats)
+        `, [req.guildId, prefix, logging_enabled ? 1 : 0, logging_channel, public_stats ? 1 : 0, newGlobalState]);
 
         // Log activity if prefix changed
         if (prefix && prefix !== oldPrefix) {
@@ -886,7 +897,7 @@ router.get('/api/guilds/public', async (req, res) => {
         const [rows] = await db.execute(`
             SELECT DISTINCT gs.guild_id
             FROM guild_settings gs
-            WHERE gs.public_stats = 1
+            WHERE gs.global_stats = 2
             LIMIT 50
         `);
         
@@ -920,4 +931,4 @@ router.get('/api/guilds/public', async (req, res) => {
     }
 });
 
-module.exports = router;
+module.exports = { router, fetchGuildMetadata };

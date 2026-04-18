@@ -21,6 +21,17 @@ export const GuildSettingsMixin = {
             document.getElementById('guild-prefix').value = settings.prefix || 'bb ';
             document.getElementById('logging-enabled').checked = settings.logging_enabled || false;
             document.getElementById('public-stats-enabled').checked = settings.public_stats || false;
+            document.getElementById('global-stats-enabled').checked = (settings.global_stats === 1 || settings.global_stats === 2);
+            const statusEl = document.getElementById('global-discovery-status');
+            if (statusEl) {
+                if (settings.global_stats === 1) {
+                    statusEl.innerHTML = '<span class="badge badge-warning" style="font-size:0.6rem; margin-top: -2px; margin-left: 8px;">pending approval</span>';
+                } else if (settings.global_stats === 2) {
+                    statusEl.innerHTML = '<span class="badge badge-purple" style="font-size:0.6rem; margin-top: -2px; margin-left: 8px;"><i class="fas fa-check"></i> approved</span>';
+                } else {
+                    statusEl.innerHTML = '';
+                }
+            }
         }
 
         const blockedChannels = await this.apiCall('/guild/blocked-channels');
@@ -37,10 +48,11 @@ export const GuildSettingsMixin = {
         const prefix = document.getElementById('guild-prefix').value.trim();
         const logging_enabled = document.getElementById('logging-enabled').checked;
         const public_stats = document.getElementById('public-stats-enabled').checked;
+        const global_stats = document.getElementById('global-stats-enabled').checked;
 
         const res = await this.apiCall('/guild/settings', {
             method: 'PUT',
-            body: JSON.stringify({ prefix, logging_enabled, public_stats })
+            body: JSON.stringify({ prefix, logging_enabled, public_stats, global_stats })
         });
 
         if (res) {

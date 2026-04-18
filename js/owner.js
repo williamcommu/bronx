@@ -97,6 +97,7 @@
             ml: loadMLSettings,
             lists: loadLists,
             economy: loadEconomySettings,
+            discovery: loadGlobalRequests,
             deployments: loadPreviews
         };
 
@@ -132,6 +133,9 @@
         // Economy
         on('save-economy-settings', 'click', saveEconomySettings);
         on('adjust-balance-btn', 'click', adjustGuildBalance);
+
+        // Discovery
+        on('refresh-discovery', 'click', loadGlobalRequests);
 
         // Deployments
         on('refresh-previews', 'click', loadPreviews);
@@ -1159,5 +1163,57 @@
             setTimeout(() => el.remove(), 200);
         }, 3000);
     }
+
+    /* ============================================================
+       Discovery Tab
+       ============================================================ */
+    async function loadGlobalRequests() {
+        const list = document.getElementById('discovery-requests-list');
+        if (!list) return;
+        list.innerHTML = '<p class="text-muted">loading requests...</p>';
+
+        try {
+            const data = await fetchJSON('/api/owner/pending-global');
+            if (!data || !data.length) {
+                list.innerHTML = '<p class="text-muted">no pending requests</p>';
+                return;
+            }
+
+            list.innerHTML = data.map(req => `
+                <div class="item-row">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <img src="${req.icon ? `https://cdn.discordapp.com/icons/${req.id}/${req.icon}.png?size=64` : `https://cdn.discordapp.com/embed/avatars/0.png`}" 
+                             style="width:32px;height:32px;border-radius:50%;" alt="">
+                        <div>
+                            <strong style="font-size:0.82rem;">${esc(req.name)}</strong>
+                            <div class="text-muted" style="font-size:0.72rem;">ID: ${esc(req.id)}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:0.5rem;">
+                        <button class="btn btn-primary btn-xs" onclick="window.approveGlobal('${req.id}', true)">
+                            <i class="fas fa-check"></i> approve
+                        </button>
+                        <button class="btn btn-danger btn-xs" onclick="window.approveGlobal('${req.id}', false)">
+                            <i class="fas fa-times"></i> deny
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        } catch {
+            list.innerHTML = '<p class="text-muted">failed to load requests</p>';
+        }
+    }
+
+    window.approveGlobal = async function(guildId, approved) {
+        if (!confirm(`${approved ? 'Approve' : 'Deny'} global discovery for this server?`)) return;
+
+        try {
+            await postJSON('/api/owner/approve-global', { guild_id: guildId, approved });
+            toast(`Discovery ${approved ? 'approved' : 'denied'}`, 'success');
+            loadGlobalRequests();
+        } catch {
+            toast('Failed to process request', 'error');
+        }
+    };
 
 })();

@@ -324,4 +324,46 @@ router.delete('/api/market/items/:item_id', requireServerEconomy, async (req, re
     }
 });
 
+// ── Global Discovery Approval ──────────────────────────────────────────
+
+router.get('/api/owner/pending-global', requireBotOwner, async (req, res) => {
+    try {
+        const db = getDb();
+        const { fetchGuildMetadata } = require('./guild');
+        
+        const [rows] = await db.execute('SELECT guild_id FROM guild_settings WHERE global_stats = 1');
+        
+        const pending = await Promise.all(rows.map(async (row) => {
+            const metadata = await fetchGuildMetadata(row.guild_id);
+            return {
+                id: row.guild_id,
+                name: metadata.name,
+                icon: metadata.icon
+            };
+        }));
+        
+        res.json(pending);
+    } catch (error) {
+        console.error('Pending global error:', error);
+        res.status(500).json({ error: 'Failed to fetch pending requests' });
+    }
+});
+
+router.post('/api/owner/approve-global', requireBotOwner, async (req, res) => {
+    try {
+        const db = getDb();
+        const { guild_id, approved } = req.body;
+        
+        if (!guild_id) return res.status(400).json({ error: 'guild_id required' });
+        
+        const newState = approved ? 2 : 0;
+        await db.execute('UPDATE guild_settings SET global_stats = ? WHERE guild_id = ?', [newState, guild_id]);
+        
+        res.json({ success: true, state: newState });
+    } catch (error) {
+        console.error('Approve global error:', error);
+        res.status(500).json({ error: 'Failed to update approval state' });
+    }
+});
+
 module.exports = router;

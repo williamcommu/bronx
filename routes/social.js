@@ -4,7 +4,7 @@ const axios = require('axios');
 const router = express.Router();
 
 const { getDb } = require('../db');
-const { cache: appCache, CacheTTL } = require('../cache');
+const { cache } = require('../cache');
 const { requireGuildAccess, requireBotOwner, isValidSnowflake, validateSnowflake } = require('../security');
 const { logActivity, formatAction } = require('../activity-logger');
 

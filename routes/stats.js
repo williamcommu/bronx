@@ -210,8 +210,8 @@ router.get('/api/stats/overview/trend', async (req, res) => {
         const activeMap = emptyMap();
         try {
             const [rows] = await db.execute(
-                `SELECT stat_date as date, messages_count as msg, active_users_count as active
-                 FROM guild_daily_stats
+                `SELECT stat_date as date, messages_count as msg, active_users as active, commands_count as cmd` +
+                 ` FROM guild_daily_stats
                  WHERE guild_id = ? AND channel_id = '__guild__'
                    AND stat_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
                  ORDER BY stat_date ASC`,
@@ -489,7 +489,7 @@ router.get('/api/stats', async (req, res) => {
         try {
             const [rows] = await db.execute(
                 `SELECT COALESCE(SUM(messages_count), 0) as msgs, 
-                        COALESCE(AVG(active_users_count), 0) as active
+                        COALESCE(AVG(active_users), 0) as active
                  FROM guild_daily_stats
                  WHERE guild_id = ? AND channel_id = '__guild__'
                    AND stat_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)`,

@@ -677,9 +677,15 @@ router.get('/api/leaderboard/:type', requireGuildAccess, async (req, res) => {
         const limit = Math.min(parseInt(req.query.limit) || 15, 50);
         const offset = Math.max(parseInt(req.query.offset) || 0, 0);
         
+        const cacheKey = cache.key('leaderboard', type, guildId, limit, offset);
+        const cachedResponse = await cache.get(cacheKey);
+        if (cachedResponse) {
+            console.log(`[Leaderboard] Cache hit: ${cacheKey}`);
+            return res.json(cachedResponse);
+        }
+        
         let query = '';
         let params = [];
-        
         switch (type) {
             case 'xp':
                 query = `
@@ -743,14 +749,14 @@ router.get('/api/leaderboard/:type', requireGuildAccess, async (req, res) => {
                 break;
             case 'messages':
                 query = `
-                    SELECT user_id, COUNT(*) as value
-                    FROM guild_message_events
-                    WHERE guild_id = ? AND event_type = 'message' AND user_id > 0
+                    SELECT user_id, SUM(messages) as value
+                    FROM user_activity_daily
+                    WHERE guild_id = ? AND user_id > 0
                     GROUP BY user_id
                     HAVING value > 0
-                    ORDER BY value DESC LIMIT ${limit} OFFSET ${offset}
+                    ORDER BY value DESC LIMIT ? OFFSET ?
                 `;
-                params = [guildId];
+                params = [guildId, parseInt(limit), parseInt(offset)];
                 break;
             default:
                 return res.status(400).json({ error: 'Invalid leaderboard type. Valid: xp, level, coins, fishing, gambling, messages' });
@@ -770,11 +776,19 @@ router.get('/api/leaderboard/:type', requireGuildAccess, async (req, res) => {
             .map(row => enrichUserRow(row, memberMap, unresolved));
         
         // Return with metadata so frontend knows to retry
-        res.json({
-            data: enriched,
-            unresolved: unresolved.length,
-            total: enriched.length
-        });
+        const responseData = {
+            type,
+            guildId,
+            limit,
+            offset,
+            total: enriched.length,
+            leaderboard: enriched
+        };
+
+        // Cache the fully resolved response for 5 minutes
+        await cache.set(cacheKey, responseData, 300);
+
+        res.json(responseData);
     } catch (error) {
         console.error('Leaderboard fetch error:', error);
         res.status(500).json({ error: 'Failed to fetch leaderboard' });

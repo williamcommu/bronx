@@ -16,7 +16,20 @@ const DEFAULT_AVATARS = [0, 1, 2, 3, 4, 5];
  * Returns the image as a stream with proper cache headers.
  */
 async function proxyImage(url, res) {
+    const cacheKey = cache.key('proxy', 'image', url);
+    
     try {
+        const cached = await cache.get(cacheKey);
+        if (cached) {
+            const buffer = Buffer.from(cached.data, 'base64');
+            res.set({
+                'Content-Type': cached.contentType,
+                'Cache-Control': 'public, max-age=86400',
+                'X-Cache': 'HIT'
+            });
+            return res.send(buffer);
+        }
+
         const response = await axios.get(url, {
             responseType: 'arraybuffer',
             timeout: 8000,
@@ -28,17 +41,25 @@ async function proxyImage(url, res) {
         });
 
         if (response.status === 404 || response.status === 403) {
-            // Return transparent 1x1 PNG fallback
             return sendFallback(res);
         }
 
         const contentType = response.headers['content-type'] || 'image/png';
+        const buffer = Buffer.from(response.data);
+
+        // Cache the image for 24 hours
+        await cache.set(cacheKey, {
+            contentType,
+            data: buffer.toString('base64')
+        }, 86400);
+
         res.set({
             'Content-Type': contentType,
             'Cache-Control': 'public, max-age=3600, s-maxage=7200',
-            'X-Proxy-Source': 'discord-cdn'
+            'X-Proxy-Source': 'discord-cdn',
+            'X-Cache': 'MISS'
         });
-        return res.send(Buffer.from(response.data));
+        return res.send(buffer);
     } catch (err) {
         console.warn('[avatar-proxy] Failed to proxy image:', url, err.message);
         return sendFallback(res);

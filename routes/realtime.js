@@ -280,6 +280,20 @@ async function runDailyStatsRollup() {
                 commands_count = VALUES(commands_count)
         `);
 
+        // Rollup user activity aggregates (for leaderboards)
+        await db.execute(`
+            INSERT INTO user_activity_daily (guild_id, user_id, stat_date, messages, commands_used)
+            SELECT guild_id, user_id, DATE(created_at), 
+                   SUM(CASE WHEN event_type = 'message' THEN 1 ELSE 0 END),
+                   SUM(CASE WHEN event_type = 'command' THEN 1 ELSE 0 END)
+            FROM guild_message_events
+            WHERE user_id != '0' AND DATE(created_at) < CURDATE()
+            GROUP BY guild_id, user_id, DATE(created_at)
+            ON DUPLICATE KEY UPDATE
+                messages = VALUES(messages),
+                commands_used = VALUES(commands_used)
+        `);
+
         await db.execute(`
             INSERT INTO guild_daily_stats (guild_id, stat_date, channel_id, active_users)
             SELECT guild_id, DATE(created_at), '__guild__', COUNT(DISTINCT user_id)

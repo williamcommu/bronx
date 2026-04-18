@@ -35,13 +35,24 @@ export function formatNumber(num) {
  * @returns {string}
  */
 export function timeAgo(date) {
+    if (!date) return '—';
     const now = new Date();
-    const diff = Math.floor((now - new Date(date)) / 60000);
-    if (diff < 1) return 'just now';
-    if (diff < 60) return `${diff}m ago`;
-    const hrs = Math.floor(diff / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    return `${Math.floor(hrs / 24)}d ago`;
+    const past = new Date(date);
+    const diffMs = now - past;
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSeconds < 30) return 'just now';
+    if (diffSeconds < 60) return `${diffSeconds} seconds ago`;
+    if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    if (diffDays === 1) return 'yesterday';
+    if (diffDays < 30) return `${diffDays} days ago`;
+    
+    // Fallback to date string if very old
+    return past.toLocaleDateString();
 }
 
 /**

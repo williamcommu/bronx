@@ -71,6 +71,9 @@ class BronxBotDashboard {
             this.setupEventListeners();
             this.setupFormEnhancements();
             this.setupKeyboardShortcuts();
+            
+            // Background ticker for dynamic timestamps
+            setInterval(() => this.updateDynamicTimestamps(), 60000);
 
             if (this.isAuthenticated) {
                 await this.loadUserData();
@@ -376,6 +379,16 @@ class BronxBotDashboard {
 
     timeAgo(date) {
         return timeAgo(date);
+    }
+
+    updateDynamicTimestamps() {
+        const elements = document.querySelectorAll('[data-timestamp]');
+        elements.forEach(el => {
+            const ts = el.getAttribute('data-timestamp');
+            if (ts) {
+                el.textContent = timeAgo(ts);
+            }
+        });
     }
 
     // ── Misc Stubs ─────────────────────────────────────────────

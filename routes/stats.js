@@ -437,7 +437,7 @@ router.get('/api/stats/recent-activity', async (req, res) => {
             const [rows] = await db.execute(`
                 SELECT user_id, user_name, user_avatar, source, action, created_at
                 FROM guild_activity_log
-                WHERE guild_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                WHERE guild_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
                 ORDER BY created_at DESC
                 LIMIT ${limit}
             `, [guildId]);
@@ -450,6 +450,7 @@ router.get('/api/stats/recent-activity', async (req, res) => {
                     time: formatTime12h(row.created_at),
                     source: row.source, // 'DB' or 'DC'
                     action: row.action,
+                    timestamp: row.created_at,
                     // Fallback icon for legacy frontend
                     icon: row.source === 'DB' ? 'cog' : 'discord',
                     description: row.action
@@ -555,7 +556,8 @@ router.get('/api/stats/recent-activity/all', async (req, res) => {
             user_name: row.user_name || null,
             time: formatTime12h(row.created_at),
             source: row.source,
-            action: row.action
+            action: row.action,
+            timestamp: row.created_at
         }));
 
         res.json({

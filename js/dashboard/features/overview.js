@@ -2,7 +2,7 @@
 //  dashboard/features/overview.js — Overview tab & stats
 // ============================================================
 
-import { formatNumber } from '../utils.js';
+import { formatNumber, timeAgo } from '../utils.js';
 
 // Chart colour tokens (matching statistics.js palette)
 const C = {
@@ -100,7 +100,7 @@ export const OverviewMixin = {
                     <div class="activity-item activity-item--rich">
                         <img src="${a.avatar}" alt="" class="activity-avatar" onerror="this.onerror=null;this.src='/api/proxy/avatar-default/0'">
                         ${userName}
-                        <span class="activity-time">${a.time}</span>
+                        <span class="activity-time" data-timestamp="${a.timestamp}">${timeAgo(a.timestamp)}</span>
                         <span class="activity-source"><em>${a.source}</em></span>
                         <span class="activity-action">${formatActivityAction(a.action)}</span>
                     </div>
@@ -111,7 +111,7 @@ export const OverviewMixin = {
                 <div class="activity-item">
                     <i class="fas fa-${a.icon || 'info-circle'}"></i>
                     <span>${a.description || a.action}</span>
-                    <span style="margin-left:auto;font-size:0.72rem;color:var(--fg-dim);">${a.time}</span>
+                    <span class="activity-time" data-timestamp="${a.timestamp || a.time}" style="margin-left:auto;font-size:0.72rem;color:var(--fg-dim);">${timeAgo(a.timestamp || a.time)}</span>
                 </div>
             `;
         }).join('');
@@ -136,7 +136,7 @@ export const OverviewMixin = {
                     <div class="activity-item activity-item--rich">
                         <img src="${a.avatar}" alt="" class="activity-avatar" onerror="this.onerror=null;this.src='/api/proxy/avatar-default/0'">
                         ${userName}
-                        <span class="activity-time">${a.time}</span>
+                        <span class="activity-time" data-timestamp="${a.timestamp}">${timeAgo(a.timestamp)}</span>
                         <span class="activity-source"><em>${a.source}</em></span>
                         <span class="activity-action">${formatActivityAction(a.action)}</span>
                     </div>
@@ -196,7 +196,7 @@ export const OverviewMixin = {
                     <div class="activity-item activity-item--rich">
                         <img src="${a.avatar}" alt="" class="activity-avatar" onerror="this.onerror=null;this.src='/api/proxy/avatar-default/0'">
                         ${userName}
-                        <span class="activity-time">${a.time}</span>
+                        <span class="activity-time" data-timestamp="${a.timestamp}">${timeAgo(a.timestamp)}</span>
                         <span class="activity-source"><em>${a.source}</em></span>
                         <span class="activity-action">${formatActivityAction(a.action)}</span>
                     </div>

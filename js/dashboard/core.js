@@ -154,7 +154,14 @@ class BronxBotDashboard {
             this.isAuthenticated = false;
             // Also check if we should allow guest mode
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('server')) return true; 
+            const serverId = urlParams.get('server');
+            if (serverId) {
+                // If authenticated but not in the server, mark as guest
+                if (!this.userGuilds.some(g => g.id === serverId)) {
+                    this.isGuest = true;
+                }
+                return true; 
+            }
             
             return false;
         } catch (error) {
@@ -169,9 +176,14 @@ class BronxBotDashboard {
 
         const urlParams = new URLSearchParams(window.location.search);
         const serverId = urlParams.get('server');
-        if (serverId && this.userGuilds.some(g => g.id === serverId)) {
+        if (serverId) {
             this.selectedServerId = serverId;
-            this.updateServerIdentity(serverId);
+            const isMember = this.userGuilds.some(g => g.id === serverId);
+            if (isMember) {
+                this.updateServerIdentity(serverId);
+            } else {
+                this.isGuest = true;
+            }
             await this.loadServerData();
         } else {
             window.location.href = '/servers';
@@ -180,8 +192,14 @@ class BronxBotDashboard {
 
     updateUserInterface() {
         const userInfo = document.getElementById('user-info');
-        if (userInfo) userInfo.style.display = 'flex';
+        if (!userInfo) return;
 
+        if (!this.isAuthenticated || !this.user) {
+            userInfo.style.display = 'none';
+            return;
+        }
+
+        userInfo.style.display = 'flex';
         const avatar = document.getElementById('user-avatar');
         const userName = document.getElementById('user-name');
 
@@ -193,25 +211,28 @@ class BronxBotDashboard {
         userName.textContent = this.user.global_name || this.user.username;
     }
 
-    updateServerIdentity(serverId) {
-        const guild = this.userGuilds.find(g => g.id === serverId);
-        if (!guild) return;
+    updateServerIdentity(serverId, metadata = null) {
+        let guild = this.userGuilds.find(g => g.id === serverId);
+        
+        // Metadata fallback for guests
+        const name = guild?.name || metadata?.guildName || 'Unknown Server';
+        const icon = guild?.icon || metadata?.guildIcon;
 
         const identityWrap = document.getElementById('server-identity');
         const identityIcon = document.getElementById('server-identity-icon');
         const identityName = document.getElementById('server-identity-name');
         if (identityWrap) identityWrap.style.display = 'flex';
         if (identityIcon) {
-            if (guild.icon) {
-                identityIcon.innerHTML = `<img src="/api/proxy/icon/${guild.id}?hash=${guild.icon}&size=64" alt="">`;
+            if (icon) {
+                identityIcon.innerHTML = `<img src="/api/proxy/icon/${serverId}?hash=${icon}&size=64" alt="">`;
             } else {
-                identityIcon.innerHTML = `<span>${(guild.name || '?').charAt(0)}</span>`;
+                identityIcon.innerHTML = `<span>${(name || '?').charAt(0)}</span>`;
             }
         }
-        if (identityName) identityName.textContent = guild.name;
+        if (identityName) identityName.textContent = name;
 
         const topbarName = document.getElementById('current-server-name');
-        if (topbarName) topbarName.textContent = guild.name;
+        if (topbarName) topbarName.textContent = name;
     }
 
     // ── Event Listeners ────────────────────────────────────────
@@ -368,9 +389,20 @@ class BronxBotDashboard {
         this.selectManager?.clearCache();
 
         const saveBtn = document.getElementById('save-all');
-        if (saveBtn) saveBtn.style.display = 'inline-flex';
+        if (saveBtn) saveBtn.style.display = this.isGuest ? 'none' : 'inline-flex';
 
         document.querySelectorAll('.tab-section').forEach(s => s.style.display = '');
+
+        // Fetch settings early to get guild metadata (name/icon) for the UI identity
+        try {
+            const settings = await this.apiCall('/guild/settings');
+            if (settings) {
+                this.updateServerIdentity(this.selectedServerId, settings);
+            }
+        } catch (e) {
+            console.warn('Failed to fetch guild metadata:', e);
+        }
+
         this.switchTab(this.currentTab || 'overview');
 
         try {

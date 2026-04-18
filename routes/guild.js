@@ -8,11 +8,36 @@ const { cache, CacheTTL } = require('../cache');
 const { requireGuildAccess, isValidSnowflake } = require('../security');
 const { logActivity, formatAction } = require('../activity-logger');
 
+const { logActivity, formatAction } = require('../activity-logger');
+
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
 
-// ════════════════════════════════════════════════════════════════════════════
-//  Discord API Proxy Endpoints (channels, roles, members)
-// ════════════════════════════════════════════════════════════════════════════
+/**
+ * Fetch basic guild info from Discord API with caching
+ */
+async function fetchGuildMetadata(guildId) {
+    const cacheKey = cache.key('guild', 'metadata', guildId);
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+
+    if (!process.env.DISCORD_TOKEN) return { id: guildId, name: 'Unknown Server' };
+
+    try {
+        const response = await axios.get(`${DISCORD_API_BASE}/guilds/${guildId}`, {
+            headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` }
+        });
+        const data = {
+            id: response.data.id,
+            name: response.data.name,
+            icon: response.data.icon
+        };
+        cache.set(cacheKey, data, CacheTTL.LONG);
+        return data;
+    } catch (error) {
+        console.warn(`Failed to fetch metadata for guild ${guildId}:`, error.message);
+        return { id: guildId, name: 'Unknown Server' };
+    }
+}
 
 router.get('/api/discord/channels', requireGuildAccess, async (req, res) => {
     try {
@@ -134,7 +159,15 @@ router.get('/api/guild/settings', async (req, res) => {
             return rows[0] || { prefix: 'bb ', logging_enabled: false, logging_channel: null, public_stats: 0 };
         }, CacheTTL.GUILD_SETTINGS);
 
-        res.json(settings);
+        // Enrich with guild metadata for public/guest access
+        const metadata = await fetchGuildMetadata(req.guildId);
+        const enrichedSettings = {
+            ...settings,
+            guildName: metadata.name,
+            guildIcon: metadata.icon
+        };
+
+        res.json(enrichedSettings);
     } catch (error) {
         console.error('Guild settings error:', error);
         res.status(500).json({ error: 'Failed to fetch guild settings' });
@@ -864,13 +897,12 @@ router.get('/api/guilds/public', async (req, res) => {
         
         const publicGuilds = [];
         for (const row of rows) {
-            const cached = cache.get(`guild:info:${row.guild_id}`);
-            if (cached) {
-                publicGuilds.push(cached);
-            } else {
-                // Return just ID if not cached, frontend will handle it
-                publicGuilds.push({ id: row.guild_id, name: 'Unknown Server', public: true });
-            }
+            const metadata = await fetchGuildMetadata(row.guild_id);
+            publicGuilds.push({
+                ...metadata,
+                public: true,
+                botPresent: true
+            });
         }
         
         res.json(publicGuilds);

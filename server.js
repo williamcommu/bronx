@@ -268,16 +268,13 @@ app.get('/dashboard', (req, res) => {
         return res.redirect('/');
     }
     
-    if (serverId && req.session?.accessibleGuilds) {
-        const hasAccess = req.session.accessibleGuilds.some(g => g.id === serverId);
-        if (!hasAccess) {
-            // Note: If they don't have auth access, the client-side will check for public_stats
-            // So we don't redirect to /servers if they are fully unauthenticated but have a server ID
-            if (req.session?.user) {
-                return res.redirect('/servers');
-            }
-        }
+    // If they are logged in but didn't specify a server, send them to the picker
+    if (req.session?.user && !serverId) {
+        return res.redirect('/servers');
     }
+
+    // If they specified a server, always serve the dashboard. 
+    // The client-side logic + API-level security middleware will handle the "Guest/Public" logic.
     res.sendFile(path.join(__dirname, 'html/dashboard.html'));
 });
 

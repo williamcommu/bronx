@@ -126,6 +126,19 @@ function requireGuildAccess(req, res, next) {
     const guild = userGuilds.find(g => g.id === guildId);
     
     if (!guild) {
+        // Guest/Public Access Bypass
+        const isPublicRoute = req.method === 'GET' && 
+            (req.path.includes('/settings') || req.path.includes('/stats') || req.path.includes('/leaderboard') || req.path.includes('/activity'));
+
+        if (isPublicRoute) {
+            const db = require('./db').getDb();
+            const [rows] = await db.execute('SELECT public_stats FROM guild_settings WHERE guild_id = ?', [guildId]);
+            if (rows[0]?.public_stats === 1) {
+                req.guildId = guildId;
+                req.isPublicGuest = true;
+                return next();
+            }
+        }
         return res.status(403).json({ error: 'You do not have access to this server' });
     }
 

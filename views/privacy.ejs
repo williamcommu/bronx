@@ -1,0 +1,632 @@
+<%- include('partials/head', { title: 'Privacy Policy | bronx Discord Bot', custom_css: ['/css/style.css', '/css/topnav.css', '/css/privacy.css', '/css/consent.css', '/css/update-banner.css'] }) %>
+<body style="font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;">
+    <%- include('partials/ambient_bg') %>
+    <%- include('partials/navbar', { pageName: 'privacy' }) %>
+    <div class="privacy-layout" style="position: relative; z-index: 1;">
+
+        <!-- ── Sidebar (shadcn-style sticky TOC) ───────────── -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-inner">
+                <div class="sidebar-header">
+                    <span class="sidebar-label">on this page</span>
+                </div>
+                <nav class="sidebar-nav" id="sidebar-nav">
+                    <a href="#data-collected" class="sidebar-link" data-target="data-collected">
+                        <span class="sidebar-indicator"></span>
+                        data we collect
+                    </a>
+                    <a href="#data-not-collected" class="sidebar-link" data-target="data-not-collected">
+                        <span class="sidebar-indicator"></span>
+                        data we don't collect
+                    </a>
+                    <a href="#how-stored" class="sidebar-link" data-target="how-stored">
+                        <span class="sidebar-indicator"></span>
+                        how data is stored
+                    </a>
+                    <a href="#encryption" class="sidebar-link" data-target="encryption">
+                        <span class="sidebar-indicator"></span>
+                        encryption & security
+                    </a>
+                    <a href="#dashboard" class="sidebar-link" data-target="dashboard">
+                        <span class="sidebar-indicator"></span>
+                        dashboard & website
+                    </a>
+                    <a href="#third-party" class="sidebar-link" data-target="third-party">
+                        <span class="sidebar-indicator"></span>
+                        third-party services
+                    </a>
+                    <a href="#retention" class="sidebar-link" data-target="retention">
+                        <span class="sidebar-indicator"></span>
+                        data retention
+                    </a>
+                    <a href="#your-rights" class="sidebar-link" data-target="your-rights">
+                        <span class="sidebar-indicator"></span>
+                        your rights & opt-out
+                    </a>
+                    <a href="#children" class="sidebar-link" data-target="children">
+                        <span class="sidebar-indicator"></span>
+                        children's privacy
+                    </a>
+                    <a href="#changes" class="sidebar-link" data-target="changes">
+                        <span class="sidebar-indicator"></span>
+                        changes to this policy
+                    </a>
+                    <a href="#contact" class="sidebar-link" data-target="contact">
+                        <span class="sidebar-indicator"></span>
+                        contact
+                    </a>
+                </nav>
+                <div class="sidebar-footer">
+                    <a href="#" class="sidebar-back-to-top" id="backToTop">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                        back to top
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ── Mobile TOC Toggle ───────────────────────────── -->
+        <button class="mobile-toc-toggle" id="mobileTocToggle" aria-label="Table of contents">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            <span>on this page</span>
+        </button>
+
+        <!-- ── Main Content ────────────────────────────────── -->
+        <main class="privacy-content">
+            <!-- Header -->
+            <header class="privacy-header">
+                <div class="privacy-breadcrumb">
+                    <a href="/landing">home</a>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    <span>privacy policy</span>
+                </div>
+                <h1>privacy policy</h1>
+                <p class="last-updated">last updated: march 12, 2026</p>
+                <p class="intro">
+                    bronx is a discord bot built with transparency in mind. this policy explains exactly what data we collect, 
+                    how it's stored and protected, and how you can control or delete your information. we don't sell data, 
+                    we don't serve ads, and we don't share your information with third parties.
+                </p>
+            </header>
+
+            <!-- Section 1: Data We Collect -->
+            <section id="data-collected" class="privacy-section">
+                <h2><span class="section-number">1.</span> data we collect</h2>
+                
+                <p>all data is keyed by your discord user ID (a numeric snowflake). we store <strong>gameplay and preference data only</strong> — never personal identity information.</p>
+
+                <h3>economy & gameplay</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>data type</th>
+                            <th>what's stored</th>
+                            <th>why</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="data-type">economy balances</td>
+                            <td>wallet, bank, bank limit, net worth, loan info</td>
+                            <td>core economy system</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">fishing data</td>
+                            <td>catches, active gear, autofisher state, fish ponds</td>
+                            <td>fishing system progression</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">gambling stats</td>
+                            <td>games played, total bet/won/lost per game type</td>
+                            <td>stats display and leaderboards</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">inventory</td>
+                            <td>items, rods, bait, tools, pets, mining claims</td>
+                            <td>item ownership tracking</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">progression</td>
+                            <td>XP, level, skill points, prestige, daily streaks</td>
+                            <td>leveling and progression systems</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">challenges</td>
+                            <td>daily challenge assignments and completion status</td>
+                            <td>daily challenge system</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">marketplace</td>
+                            <td>bazaar shares, trade history, wishlist</td>
+                            <td>trading and marketplace</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>usage & moderation</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>data type</th>
+                            <th>what's stored</th>
+                            <th>why</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="data-type">command usage</td>
+                            <td>which commands you run, when, and in which guild</td>
+                            <td>anti-abuse detection, dashboard analytics</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">cooldowns</td>
+                            <td>per-command cooldown timestamps</td>
+                            <td>rate limiting gameplay commands</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">moderation flags</td>
+                            <td>blacklist/whitelist status, anti-cheat records</td>
+                            <td>abuse prevention</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">preferences</td>
+                            <td>custom prefixes, passive mode, AFK status</td>
+                            <td>user customization</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">submissions</td>
+                            <td>bug reports and suggestions you voluntarily submit</td>
+                            <td>community feedback</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>server-specific data</h3>
+                <p>if a server has server economy enabled, a separate copy of economy data is maintained per-guild. this includes balances, inventory, fishing data, and gambling stats scoped to that server.</p>
+
+                <h3>dashboard events</h3>
+                <p>when the bot is in a server and the dashboard is active, we track aggregated server activity:</p>
+                <ul>
+                    <li>member join/leave events (user ID + guild ID + timestamp)</li>
+                    <li>message event counts (user ID + channel ID — not message content)</li>
+                    <li>command usage per channel per day</li>
+                    <li>voice join/leave events</li>
+                    <li>boost events</li>
+                </ul>
+            </section>
+
+            <!-- Section 2: Data We Don't Collect -->
+            <section id="data-not-collected" class="privacy-section">
+                <h2><span class="section-number">2.</span> data we don't collect</h2>
+                
+                <div class="info-card info-card--success">
+                    <div class="info-card-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                    </div>
+                    <div>
+                        <div class="info-card-title">we never store the following</div>
+                        <p>this data is never written to our database or persisted anywhere.</p>
+                    </div>
+                </div>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>data</th>
+                            <th>status</th>
+                            <th>notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="data-type">usernames / display names</td>
+                            <td class="data-not-stored">never stored</td>
+                            <td>fetched live from discord API when rendering embeds</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">nicknames</td>
+                            <td class="data-not-stored">never stored</td>
+                            <td>resolved from discord's guild member cache at runtime</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">avatar images / URLs</td>
+                            <td class="data-not-stored">never stored</td>
+                            <td>fetched from discord CDN when needed for embed footers</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">email addresses</td>
+                            <td class="data-not-stored">never stored</td>
+                            <td>we don't request the email OAuth2 scope</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">IP addresses</td>
+                            <td class="data-not-stored">never stored</td>
+                            <td>server logs may transiently contain IPs but they're never persisted to our database</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">message content</td>
+                            <td class="data-not-stored">never stored</td>
+                            <td>the bot reads messages for command prefixes only — content is never logged or saved</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">DM content</td>
+                            <td class="data-not-stored">never stored</td>
+                            <td>DMs are only used for captcha verification and notifications</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">voice audio</td>
+                            <td class="data-not-stored">never stored</td>
+                            <td>we only track join/leave events for dashboard stats</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Section 3: How Data Is Stored -->
+            <section id="how-stored" class="privacy-section">
+                <h2><span class="section-number">3.</span> how data is stored</h2>
+                
+                <p>all data is stored in a MariaDB database. the database connection uses TLS encryption for remote connections.</p>
+                
+                <ul>
+                    <li><strong>primary key:</strong> discord user ID (numeric snowflake) — this is the only identifier linking data to your account</li>
+                    <li><strong>database host:</strong> self-hosted or Aiven cloud (with TLS)</li>
+                    <li><strong>connection pooling:</strong> connections are pooled and reused — credentials are never exposed to end users</li>
+                    <li><strong>no PII in database:</strong> the database contains zero personally identifiable information beyond your discord user ID</li>
+                </ul>
+            </section>
+
+            <!-- Section 4: Encryption -->
+            <section id="encryption" class="privacy-section">
+                <h2><span class="section-number">4.</span> encryption & security</h2>
+
+                <h3>identity data encryption</h3>
+                <p>when identity data (username, nickname, avatar hash) needs to be temporarily cached for display purposes, it is:</p>
+                <ul>
+                    <li>encrypted using <strong>AES-256-CBC</strong> before being written to the database</li>
+                    <li>stored with a unique initialization vector (IV) per record</li>
+                    <li>set to <strong>automatically expire after 30 days</strong></li>
+                    <li>purged on a regular schedule — expired entries are permanently deleted</li>
+                </ul>
+
+                <div class="info-card info-card--accent">
+                    <div class="info-card-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </div>
+                    <div>
+                        <div class="info-card-title">encryption details</div>
+                        <p>
+                            encryption keys are managed server-side and are never exposed to clients. 
+                            the encryption key can be rotated without data loss. all cached identity data 
+                            is encrypted at rest and decrypted only when needed for display.
+                        </p>
+                    </div>
+                </div>
+
+                <h3>transport security</h3>
+                <ul>
+                    <li>database connections to remote hosts use TLS/SSL</li>
+                    <li>the dashboard website uses HTTPS</li>
+                    <li>discord API communication uses HTTPS exclusively</li>
+                    <li>OAuth2 tokens are stored server-side in encrypted sessions</li>
+                </ul>
+
+                <h3>anti-abuse system (BAC)</h3>
+                <p>the bronx anti-cheat system (BAC) monitors command timing patterns to detect automation. this data is:</p>
+                <ul>
+                    <li>stored <strong>in memory only</strong> — never persisted to disk or database</li>
+                    <li>limited to the last 12 command timestamps per user</li>
+                    <li>cleared when the bot restarts or when a user passes a captcha</li>
+                </ul>
+            </section>
+
+            <!-- Section 5: Dashboard -->
+            <section id="dashboard" class="privacy-section">
+                <h2><span class="section-number">5.</span> dashboard & website</h2>
+
+                <h3>authentication</h3>
+                <p>the dashboard uses discord OAuth2 with the following scopes:</p>
+                <ul>
+                    <li><strong>identify</strong> — your user ID, username, avatar, and discriminator</li>
+                    <li><strong>guilds</strong> — list of servers you're in (to show ones where you have manage permissions)</li>
+                </ul>
+                <p>we do <strong>not</strong> request the <code>email</code>, <code>messages.read</code>, or <code>guilds.join</code> scopes.</p>
+
+                <h3>session data</h3>
+                <ul>
+                    <li>your discord identity (ID, username, avatar) is stored in a <strong>server-side session</strong></li>
+                    <li>sessions expire after <strong>24 hours</strong></li>
+                    <li>session data is stored in server memory — not in a database or on disk</li>
+                    <li>session cookies are <strong>httpOnly</strong> and <strong>sameSite: lax</strong></li>
+                </ul>
+
+                <h3>API data exposure</h3>
+                <p>the dashboard API exposes:</p>
+                <ul>
+                    <li><strong>your servers:</strong> only servers where you have manage/admin permissions AND the bot is present</li>
+                    <li><strong>server stats:</strong> aggregated message counts, command usage, active users — no individual user data</li>
+                    <li><strong>member lists:</strong> fetched live from discord API (cached 30 seconds) — not from our database</li>
+                    <li><strong>economy data:</strong> user search shows user_id, wallet, bank, last_active — no usernames or personal info</li>
+                </ul>
+
+                <div class="info-card info-card--warning">
+                    <div class="info-card-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
+                    <div>
+                        <div class="info-card-title">owner-only endpoints</div>
+                        <p>
+                            certain API endpoints (blacklist management, suggestions, badge grants) are restricted to the bot owner only.
+                            these endpoints require both authentication and owner verification.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 6: Third-Party -->
+            <section id="third-party" class="privacy-section">
+                <h2><span class="section-number">6.</span> third-party services</h2>
+                
+                <p>bronx interacts with the following third-party services:</p>
+                <ul>
+                    <li><strong>discord API</strong> — for bot functionality, OAuth2 authentication, and fetching user/guild data. governed by <a href="https://discord.com/privacy" target="_blank">discord's privacy policy</a></li>
+                    <li><strong>Aiven</strong> (optional) — cloud database hosting with TLS. data is stored in Aiven's infrastructure when the remote database is configured</li>
+                </ul>
+                <p>we do <strong>not</strong> use analytics services, advertising networks, or any other third-party data processors.</p>
+            </section>
+
+            <!-- Section 7: Retention -->
+            <section id="retention" class="privacy-section">
+                <h2><span class="section-number">7.</span> data retention</h2>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>data type</th>
+                            <th>retention</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="data-type">economy & gameplay data</td>
+                            <td>retained until you opt out or request deletion</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">command usage logs</td>
+                            <td>retained indefinitely for abuse detection</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">encrypted identity cache</td>
+                            <td>automatically deleted after 30 days</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">dashboard sessions</td>
+                            <td>automatically deleted after 24 hours</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">anti-cheat (BAC) data</td>
+                            <td>in-memory only — cleared on restart</td>
+                        </tr>
+                        <tr>
+                            <td class="data-type">aggregated server stats</td>
+                            <td>retained per-guild while the bot is in the server</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Section 8: Your Rights -->
+            <section id="your-rights" class="privacy-section">
+                <h2><span class="section-number">8.</span> your rights & opt-out</h2>
+
+                <p>you have full control over your data. here's what you can do:</p>
+
+                <h3>opt out of data collection</h3>
+                <p>you can completely opt out at any time. this will:</p>
+                <ul>
+                    <li><strong>permanently delete</strong> all your data across all tables (economy, fish, stats, inventory, everything)</li>
+                    <li><strong>block all commands</strong> — the bot will not process or respond to any of your commands</li>
+                    <li><strong>stop all data collection</strong> — no new data will be recorded about you</li>
+                </ul>
+
+                <div class="optout-cta">
+                    <h3>how to opt out</h3>
+                    <p>use the privacy command in any server where bronx is present:</p>
+                    <p>
+                        <code>b.privacy optout</code> or <code>/privacy optout</code>
+                    </p>
+                    <p>you'll be asked to confirm before any data is deleted.</p>
+                </div>
+
+                <h3>opt back in</h3>
+                <p>if you change your mind, you can opt back in at any time:</p>
+                <ul>
+                    <li>use <code>b.privacy optin</code> or <code>/privacy optin</code></li>
+                    <li>your previous data <strong>cannot be recovered</strong> — you'll start with a fresh account</li>
+                    <li>all bot commands will work again immediately</li>
+                </ul>
+
+                <h3>view your data</h3>
+                <p>you can see what data the bot has about you:</p>
+                <ul>
+                    <li><code>b.privacy info</code> — summary of what data types are collected</li>
+                    <li><code>b.bal</code> — your economy balances</li>
+                    <li><code>b.profile</code> — your profile and stats</li>
+                    <li><code>b.inv</code> — your inventory</li>
+                    <li><code>b.stats</code> — your gambling and gameplay statistics</li>
+                </ul>
+
+                <h3>data deletion requests</h3>
+                <p>
+                    the <code>b.privacy optout</code> command handles complete data deletion automatically. 
+                    if you need assistance or have questions about your data, you can also contact us through 
+                    our <a href="https://discord.gg/bronx" target="_blank">support server</a>.
+                </p>
+
+                <div class="info-card info-card--danger">
+                    <div class="info-card-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    </div>
+                    <div>
+                        <div class="info-card-title">important: opt-out is irreversible</div>
+                        <p>
+                            once you opt out, all your data is permanently deleted from our database. 
+                            this includes economy balances, fish catches, gambling stats, inventory, XP, 
+                            daily streaks, and everything else. this cannot be undone.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 9: Children -->
+            <section id="children" class="privacy-section">
+                <h2><span class="section-number">9.</span> children's privacy</h2>
+                <p>
+                    bronx does not knowingly collect data from users under 13 years of age. 
+                    discord's own terms of service require users to be at least 13 (or the minimum age in their country). 
+                    if you believe a child under 13 is using the bot, please contact us so we can delete their data.
+                </p>
+            </section>
+
+            <!-- Section 10: Changes -->
+            <section id="changes" class="privacy-section">
+                <h2><span class="section-number">10.</span> changes to this policy</h2>
+                <p>
+                    we may update this privacy policy from time to time. significant changes will be announced in our 
+                    <a href="https://discord.gg/bronx" target="_blank">support server</a>. the "last updated" date at the 
+                    top of this page will always reflect the most recent revision.
+                </p>
+            </section>
+
+            <!-- Section 11: Contact -->
+            <section id="contact" class="privacy-section">
+                <h2><span class="section-number">11.</span> contact</h2>
+                <p>if you have questions about this privacy policy or your data:</p>
+                <ul>
+                    <li>join our <a href="https://discord.gg/bronx" target="_blank">support server</a> and open a ticket</li>
+                    <li>use <code>b.privacy</code> in any server to manage your preferences</li>
+                    <li>view the source code on <a href="https://github.com/siqnole/bronxbot" target="_blank">github</a></li>
+                </ul>
+            </section>
+
+    </div>
+
+    <%- include('partials/footer') %>
+
+    <script>
+    (() => {
+        const sidebarNav = document.getElementById('sidebar-nav');
+        const sidebar    = document.getElementById('sidebar');
+        const mobileTocToggle = document.getElementById('mobileTocToggle');
+        const backToTop  = document.getElementById('backToTop');
+        const links      = sidebarNav.querySelectorAll('.sidebar-link');
+        const sections   = document.querySelectorAll('.privacy-section');
+        let activeId     = null;
+
+        /* ── IntersectionObserver scroll spy ──────────────── */
+        const observerOpts = {
+            rootMargin: '-80px 0px -60% 0px',
+            threshold: 0
+        };
+
+        const visibleSections = new Set();
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    visibleSections.add(entry.target.id);
+                } else {
+                    visibleSections.delete(entry.target.id);
+                }
+            });
+
+            // Pick the topmost visible section in DOM order
+            const sectionIds = Array.from(sections).map(s => s.id);
+            let topVisible = null;
+            for (const id of sectionIds) {
+                if (visibleSections.has(id)) { topVisible = id; break; }
+            }
+
+            if (topVisible && topVisible !== activeId) {
+                setActive(topVisible);
+            }
+        }, observerOpts);
+
+        sections.forEach(s => observer.observe(s));
+
+        /* ── Fallback: bottom-of-page activates last section  */
+        let ticking = false;
+        window.addEventListener('scroll', () => {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(() => {
+                if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 50) {
+                    const last = sections[sections.length - 1];
+                    if (last && last.id !== activeId) setActive(last.id);
+                }
+                ticking = false;
+            });
+        });
+
+        function setActive(id) {
+            activeId = id;
+            links.forEach(link => {
+                const active = link.dataset.target === id;
+                link.classList.toggle('active', active);
+                link.setAttribute('aria-current', active ? 'true' : 'false');
+            });
+        }
+
+        /* ── Smooth scroll on sidebar click ───────────────── */
+        links.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.dataset.target;
+                const target   = document.getElementById(targetId);
+                if (target) {
+                    const y = target.getBoundingClientRect().top + window.scrollY - 90;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                    setActive(targetId);
+                    // Close mobile sidebar
+                    sidebar.classList.remove('open');
+                    mobileTocToggle.classList.remove('open');
+                }
+            });
+        });
+
+        /* ── Back to top ──────────────────────────────────── */
+        backToTop.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        /* ── Mobile toggle ────────────────────────────────── */
+        mobileTocToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            mobileTocToggle.classList.toggle('open');
+        });
+
+        // Close on outside click (mobile)
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth > 1024) return;
+            if (!sidebar.contains(e.target) && !mobileTocToggle.contains(e.target)) {
+                sidebar.classList.remove('open');
+                mobileTocToggle.classList.remove('open');
+            }
+        });
+
+        /* ── Initial active state ─────────────────────────── */
+        requestAnimationFrame(() => {
+            const hash = window.location.hash.replace('#', '');
+            if (hash && document.getElementById(hash)) {
+                setActive(hash);
+            } else if (sections.length) {
+                setActive(sections[0].id);
+            }
+        });
+    })();
+    </script>
+    <%- include('partials/consent') %>
+    <script src="/js/version-check.js"></script>
+</body>
+</html>

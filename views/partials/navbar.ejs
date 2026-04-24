@@ -1,0 +1,47 @@
+<nav class="topnav glass">
+    <div class="topnav-left">
+        <a href="/" class="topnav-brand">
+            <img src="/assets/avatar.png" alt="bronx">
+            <span class="brand-text">bronx</span>
+        </a>
+        <% if (locals.pageName && pageName !== 'home') { %>
+            <i class="fas fa-chevron-right topnav-separator"></i>
+            <span class="topnav-page"><%= pageName %></span>
+        <% } %>
+    </div>
+
+    <div class="topnav-links desktop-only">
+        <a href="https://status.bronxbot.xyz" class="nav-link">status</a>
+        <div class="nav-dropdown">
+            <span class="nav-dropbtn">resources <i class="fas fa-chevron-down" style="font-size: 0.7rem;"></i></span>
+            <div class="nav-dropdown-bridge"></div>
+            <div class="nav-dropdown-content">
+                <a href="https://docs.bronxbot.xyz">api docs</a>
+                <a href="https://guide.bronxbot.xyz">user guide</a>
+                <a href="/privacy">privacy policy</a>
+                <a href="/terms">terms of service</a>
+            </div>
+        </div>
+        <a href="https://dashboard.bronxbot.xyz" class="nav-link">dashboard</a>
+        
+        <% if (locals.user) { %>
+            <div class="nav-dropdown">
+                <div class="user-chip nav-dropbtn">
+                    <img src="<%= user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` : '/assets/avatar.png' %>" alt="Avatar">
+                    <span><%= user.username %></span>
+                </div>
+                <div class="nav-dropdown-bridge"></div>
+                <div class="nav-dropdown-content">
+                    <a href="/dashboard">my servers</a>
+                    <a href="/logout" style="color: #ef4444 !important;">logout</a>
+                </div>
+            </div>
+        <% } else { %>
+            <a href="/login" class="nav-invite-btn">login</a>
+        <% } %>
+    </div>
+
+    <button class="mobile-menu-btn" id="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+</nav>

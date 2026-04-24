@@ -1,0 +1,198 @@
+<%- include('partials/head', { title: 'systems status | bronx discord bot', custom_css: ['/css/style.css', '/css/status.css', '/css/topnav.css'] }) %>
+<body>
+    <%- include('partials/ambient_bg') %>
+    <%- include('partials/navbar', { pageName: 'status' }) %>
+
+    <div class="container" style="position: relative; z-index: 1;">
+        <header>
+            <h1>bronx systems</h1>
+            <p>real-time infrastructure health and performance monitoring</p>
+        </header>
+
+        <section class="overall-status" style="display: block;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div class="status-indicator">
+                    <div class="pulse" id="global-pulse"></div>
+                    <div class="status-text">
+                        <h2 id="global-status-text">All Systems Operational</h2>
+                        <span id="last-global-check">Checking latest heartbeat...</span>
+                    </div>
+                </div>
+                <div class="uptime-percent" style="text-align: right;">
+                    <span style="color: var(--success); font-weight: 800; font-size: 1.5rem;">99.98%</span>
+                    <p style="color: var(--text-dim); font-size: 0.8rem;">Last 30 Days</p>
+                </div>
+            </div>
+            
+            <div class="uptime-history-container">
+                <div class="uptime-bars" id="uptime-bars">
+                    <!-- Bars injected by JS -->
+                </div>
+                <div class="uptime-labels" style="display: flex; justify-content: space-between; color: var(--text-dim); font-size: 0.8rem; margin-top: 0.5rem;">
+                    <span>30 days ago</span>
+                    <span>100% uptime</span>
+                    <span>Today</span>
+                </div>
+            </div>
+        </section>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <i class="fas fa-microchip"></i>
+                <h3 id="total-memory">0 MB</h3>
+                <p>RAM Usage</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-cubes"></i>
+                <h3 id="total-shards">0</h3>
+                <p>Total Shards</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-server"></i>
+                <h3 id="total-guilds">0</h3>
+                <p>Servers Served</p>
+            </div>
+        </div>
+
+        <section class="shards-section">
+            <h2>Cluster Health</h2>
+            <div class="shard-grid" id="shard-container">
+                <!-- Shard cards will be injected here -->
+                <div style="grid-column: 1/-1; text-align: center; padding: 3rem;">
+                    <p style="color: var(--text-dim)">Loading shard data...</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <%- include('partials/footer') %>
+
+    <script>
+        function formatUptime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            if (h > 0) return `${h}h ${m}m ${s}s`;
+            if (m > 0) return `${m}m ${s}s`;
+            return `${s}s`;
+        }
+        function renderUptimeHistory() {
+            const container = document.getElementById('uptime-bars');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            // Mock data for demonstration: most days 100%, a few empty/warning/danger
+            const days = Array.from({length: 30}, (_, i) => {
+                if (i === 6 || i === 14) return 'nodata';
+                if (i === 12) return 'danger';
+                if (i === 20 || i === 21) return 'warning';
+                return 'success';
+            });
+            
+            days.forEach((status, index) => {
+                const bar = document.createElement('div');
+                bar.className = `uptime-day ${status !== 'success' ? status : ''}`;
+                
+                // Tooltip content
+                let statusText = '100% Uptime';
+                let percentage = '100.00%';
+                if (status === 'nodata') { statusText = 'No Data Available'; percentage = 'N/A'; }
+                if (status === 'danger') { statusText = 'Major Outage'; percentage = '64.21%'; }
+                if (status === 'warning') { statusText = 'Partial Outage'; percentage = '96.50%'; }
+                
+                const daysAgo = 30 - index;
+                const d = new Date();
+                d.setDate(d.getDate() - daysAgo);
+                const dateLabel = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                
+                const tooltip = document.createElement('div');
+                tooltip.className = 'tooltip';
+                tooltip.innerHTML = `
+                    <div class="tooltip-date">${dateLabel}</div>
+                    <div class="tooltip-status" style="color: ${status === 'success' ? 'var(--success)' : (status === 'warning' ? '#eab308' : (status === 'danger' ? '#ef4444' : 'var(--text-dim)'))}">${percentage}</div>
+                    <div style="color: var(--text-dim); font-size: 0.75rem;">${statusText}</div>
+                `;
+                
+                bar.appendChild(tooltip);
+                
+                container.appendChild(bar);
+            });
+        }
+
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/status/heartbeats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update header stats
+                    document.getElementById('total-memory').textContent = `${data.totals.memory} MB`;
+                    document.getElementById('total-shards').textContent = data.shards.length;
+                    document.getElementById('total-guilds').textContent = data.totals.guilds.toLocaleString();
+                    document.getElementById('last-global-check').textContent = `Last heartbeat: ${new Date().toLocaleTimeString()}`;
+
+                    // Update shard grid
+                    const container = document.getElementById('shard-container');
+                    container.innerHTML = '';
+
+                    data.shards.forEach(shard => {
+                        const card = document.createElement('div');
+                        card.className = 'shard-card';
+                        
+                        // Check if heartbeat is stale (> 3 mins)
+                        const lastPulse = new Date(shard.lastUpdate);
+                        const isStale = (new Date() - lastPulse) > 180000;
+                        const statusColor = isStale ? '#ef4444' : '#10b981';
+                        const statusLabel = isStale ? 'Disconnected' : 'Online';
+
+                        card.innerHTML = `
+                            <div class="shard-header">
+                                <span class="shard-id">shard #${shard.id}</span>
+                                <span class="shard-badge" style="background: ${isStale ? 'rgba(239, 68, 68, 0.1)' : ''}; color: ${statusColor}">${statusLabel.toLowerCase()}</span>
+                            </div>
+                            <div class="shard-info">
+                                <div class="info-item">
+                                    <label>uptime</label>
+                                    <value>${formatUptime(shard.uptime)}</value>
+                                </div>
+                                <div class="info-item">
+                                    <label>memory</label>
+                                    <value>${shard.memory} mb</value>
+                                </div>
+                                <div class="info-item">
+                                    <label>guilds</label>
+                                    <value>${shard.guilds}</value>
+                                </div>
+                                <div class="info-item">
+                                    <label>region</label>
+                                    <value>auto</value>
+                                </div>
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+
+                    // Update global status text
+                    const isAnyStale = data.shards.some(s => (new Date() - new Date(s.lastUpdate)) > 180000);
+                    const globalPulse = document.getElementById('global-pulse');
+                    if (isAnyStale) {
+                        document.getElementById('global-status-text').textContent = 'partial outage detected';
+                        globalPulse.style.background = '#ef4444';
+                    } else {
+                        document.getElementById('global-status-text').textContent = 'all systems operational';
+                        globalPulse.style.background = '#10b981';
+                    }
+                }
+            } catch (error) {
+                console.error('Update failed:', error);
+            }
+        }
+
+        // Initial update and interval
+        renderUptimeHistory();
+        updateStatus();
+        setInterval(updateStatus, 30000);
+    </script>
+</body>
+</html>

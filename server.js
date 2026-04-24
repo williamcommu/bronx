@@ -43,6 +43,7 @@ const privacyRoutes = require('./routes/privacy');
 const avatarProxyRoutes = require('./routes/avatar-proxy');
 const { initSocket, initializeRealTimeMonitoring, registerRoutes: registerRealtimeRoutes } = require('./routes/realtime');
 const renderRoutes = require('./routes/render');
+const statusRoutes = require('./routes/status');
 
 
 // ── App & server setup ──────────────────────────────────────────────────
@@ -133,12 +134,58 @@ if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_CLIENT_SECRET) {
     console.warn('Required: Set DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET in .env file');
 }
 
+// ── Subdomain Routing Middleware ─────────────────────────────────────────
+
+app.use((req, res, next) => {
+    const host = req.headers.host || '';
+    
+    // Skip subdomain logic only for the root naked domain (localhost or bronxbot.xyz)
+    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+    const hasSubdomain = host.split('.').length > (isLocal ? 1 : 2); 
+    // ^ For localhost:3000, parts = ['localhost:3000'] (len 1)
+    // ^ For dashboard.localhost:3000, parts = ['dashboard', 'localhost:3000'] (len 2)
+    
+    // If it's a naked local host, just continue to main app
+    if (isLocal && host.split('.').length === 1) return next();
+    if (host === 'bronxbot.xyz' || host === 'www.bronxbot.xyz') return next();
+
+    // Subdomain routing - Preserve paths while mapping subdomains to functional hubs
+    if (host.startsWith('status.')) {
+        if (req.url === '/' || req.url === '') req.url = '/status-page';
+    } else if (host.startsWith('api.')) {
+        // Map api.domain.com/path -> /api/path
+        if (!req.url.startsWith('/api/')) {
+            req.url = '/api' + (req.url === '/' ? '' : req.url);
+        }
+    } else if (host.startsWith('docs.')) {
+        if (req.url === '/' || req.url === '') req.url = '/docs';
+    } else if (host.startsWith('guide.')) {
+        if (req.url === '/' || req.url === '') req.url = '/guide';
+    } else if (host.startsWith('dashboard.')) {
+        // Clean Dashboard URLs: dashboard.bronxbot.xyz/123456789...
+        const guildIdMatch = req.url.match(/^\/(\d{17,20})\/?$/);
+        if (guildIdMatch) {
+            req.url = `/dashboard?server=${guildIdMatch[1]}`;
+        } else if (req.url === '/' || req.url === '') {
+            req.url = '/servers';
+        }
+    }
+
+    next();
+});
+
 // ── Global middleware ───────────────────────────────────────────────────
 
 app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '.')));
+
+// Configure EJS Templating Engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static(path.join(__dirname, 'views'))); // if any raw assets are in views, otherwise handled by static '.'
+
 
 // Session middleware (shared with Socket.io)
 // Use RedisStore if Redis is available, otherwise fall back to MemoryStore
@@ -166,7 +213,7 @@ app.use(securityLogger);
 app.use('/api/', rateLimiters.api);
 
 // Auth middleware for API routes — skip public endpoints
-const PUBLIC_API_PATHS = ['/health', '/version', '/csrf-token', '/auth/user', '/bot/log', '/bot/events', '/bot/preview', '/guide', '/privacy/status', '/proxy/avatar', '/proxy/icon', '/proxy/avatar-default', '/stats', '/leaderboard', '/economy/mode'];
+const PUBLIC_API_PATHS = ['/health', '/version', '/csrf-token', '/auth/user', '/bot/log', '/bot/events', '/bot/preview', '/guide', '/privacy/status', '/proxy/avatar', '/proxy/icon', '/proxy/avatar-default', '/stats', '/leaderboard', '/economy/mode', '/status/heartbeats'];
 app.use('/api', (req, res, next) => {
     if (PUBLIC_API_PATHS.some(p => req.path === p || req.path.startsWith(p + '/'))) {
         return next();
@@ -248,15 +295,26 @@ app.get('/api/version', (req, res) => {
 
 // Serve landing page for all users
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'html/index.html'));
+    res.render('index');
 });
 
-app.get('/landing', (req, res) => {
-    res.sendFile(path.join(__dirname, 'html/index.html'));
+app.get('/favicon.ico', (req, res) => {
+    res.sendFile(path.join(__dirname, 'assets/avatar.png'));
+});
+
+app.get(['/privacy', '/tos', '/guide', '/status', '/status-page', '/docs'], (req, res) => {
+    let page = req.path.substring(1);
+    let pageName = page;
+    if (page === 'status-page') page = 'status';
+    if (page === 'docs') {
+        page = 'docs';
+        pageName = 'api';
+    }
+    res.render(page, { pageName: pageName });
 });
 
 app.get('/servers', (req, res) => {
-    res.sendFile(path.join(__dirname, 'html/servers.html'));
+    res.render('servers');
 });
 
 app.get('/dashboard', (req, res) => {
@@ -264,9 +322,24 @@ app.get('/dashboard', (req, res) => {
     const serverId = req.query.server;
     
     // Server-side auth gate: redirect unauthenticated users to landing page
-    // UNLESS they are trying to view a specific server's public stats
     if (!req.session?.user && !serverId) {
-        return res.redirect('/');
+        const host = req.get('host') || '';
+        if (host.includes('localhost') || host.includes('127.0.0.1')) {
+            // Mock a local user session for dashboard development
+            req.session.user = { 
+                id: '123456789', 
+                username: 'LocalDev', 
+                avatar: null,
+                discriminator: '0000'
+            };
+            req.session.accessibleGuilds = [
+                { id: 'mock-1', name: 'Mock Server 1', icon: null, owner: true, permissions: '8' },
+                { id: 'mock-2', name: 'Mock Server 2', icon: null, owner: false, permissions: '8' }
+            ];
+            // No redirect on localhost
+        } else {
+            return res.redirect('/login');
+        }
     }
     
     // If they are logged in but didn't specify a server, send them to the picker
@@ -274,33 +347,16 @@ app.get('/dashboard', (req, res) => {
         return res.redirect('/servers');
     }
 
-    // If they specified a server, always serve the dashboard. 
-    // The client-side logic + API-level security middleware will handle the "Guest/Public" logic.
-    res.sendFile(path.join(__dirname, 'html/dashboard.html'));
+    // If they specified a server, serve the dashboard. 
+    res.render('dashboard');
 });
 
-app.get('/owner', requireAuth, (req, res) => {
-    if (req.session.user.id !== BOT_OWNER_ID) {
-        return res.redirect('/servers');
-    }
-    res.sendFile(path.join(__dirname, 'html/owner.html'));
+// Admin/Owner routes should also be handled by legacy files for now
+app.get('/owner', (req, res) => {
+    res.render('owner');
 });
 
-app.get('/privacy', (req, res) => {
-    res.sendFile(path.join(__dirname, 'html/privacy.html'));
-});
 
-app.get('/tos', (req, res) => {
-    res.sendFile(path.join(__dirname, 'html/tos.html'));
-});
-
-app.get('/api-docs', (req, res) => {
-    res.sendFile(path.join(__dirname, 'html/api-docs.html'));
-});
-
-app.get('/sitemap', (req, res) => {
-    res.sendFile(path.join(__dirname, 'html/sitemap.html'));
-});
 
 // ── Health check ────────────────────────────────────────────────────────
 
@@ -308,7 +364,7 @@ const { getDb, isDbHealthy } = require('./db');
 
 app.get('/api/health', async (req, res) => {
     try {
-        if (!isDbHealthy()) {
+        if (isDbHealthy()) {
             const db = getDb();
             await db.execute('SELECT 1');
         }
@@ -350,9 +406,12 @@ app.use(renderRoutes);
 // Leaderboard routes
 const leaderboardRoutes = require('./routes/leaderboard');
 app.use(leaderboardRoutes);
+app.use(statusRoutes);
 
 // Realtime routes (not a Router — registers directly on app)
 registerRealtimeRoutes(app);
+
+// SPA Fallback removed; strict legacy routes only
 
 // ── Socket.io + realtime monitoring ─────────────────────────────────────
 

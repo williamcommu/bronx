@@ -1,0 +1,285 @@
+/* ── Status Page Design System ──────────────────────── */
+:root {
+    --status-bg: #050508;
+    --card-bg: rgba(15, 17, 26, 0.7);
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --text-dim: #94a3b8;
+    --accent: #b4a7d6;
+    --glass-border: rgba(180, 167, 214, 0.1);
+}
+
+body {
+    background-color: transparent;
+    color: #f8fafc;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 4rem;
+}
+
+header h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+}
+
+header p {
+    color: var(--text-dim);
+    font-size: 1.1rem;
+}
+
+/* Overall Status Card */
+.overall-status {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 2.5rem;
+    margin-bottom: 3rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.pulse {
+    width: 14px;
+    height: 14px;
+    background: var(--success);
+    border-radius: 50%;
+    position: relative;
+    box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+    animation: statusPulse 2s infinite;
+}
+
+@keyframes statusPulse {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.status-text h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.status-text span {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+}
+
+/* Uptime History */
+.uptime-history-container {
+    margin-top: 2.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.uptime-bars {
+    display: flex;
+    gap: 4px;
+    height: 40px;
+    align-items: center;
+}
+
+.uptime-day {
+    flex: 1;
+    height: 100%;
+    background: var(--success);
+    border-radius: 2px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    cursor: help;
+    position: relative;
+}
+
+.uptime-day:hover {
+    transform: scaleY(1.2);
+    opacity: 0.8;
+}
+
+.uptime-day.warning { background: var(--warning); }
+.uptime-day.danger { background: var(--danger); }
+.uptime-day.nodata { background: #1e293b; }
+
+/* Tooltip style */
+.uptime-day .tooltip {
+    position: absolute;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0f172a;
+    border: 1px solid var(--glass-border);
+    padding: 0.75rem;
+    border-radius: 8px;
+    width: 140px;
+    font-size: 0.75rem;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.uptime-day:hover .tooltip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-5px);
+}
+
+/* Stats Cards */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 4rem;
+}
+
+.stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 2rem;
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent);
+}
+
+.stat-card i {
+    font-size: 1.5rem;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.stat-card h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.stat-card p {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Shard Cards */
+.shards-section h2 {
+    font-size: 1.75rem;
+    margin-bottom: 2rem;
+    font-weight: 600;
+}
+
+.shard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1.5rem;
+}
+
+.shard-card {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.shard-card:hover {
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+    border-color: rgba(180, 167, 214, 0.3);
+}
+
+.shard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.shard-id {
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+}
+
+.shard-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    border-radius: 20px;
+}
+
+.shard-info {
+    display: grid;
+    gap: 1rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.info-item label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+}
+
+.info-item value {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.bg-glow {
+    position: fixed;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    filter: blur(150px);
+    z-index: -1;
+    opacity: 0.15;
+    pointer-events: none;
+}
+
+.bg-glow-1 {
+    top: -10%;
+    right: -10%;
+    background: var(--accent);
+}
+
+.bg-glow-2 {
+    bottom: -10%;
+    left: -10%;
+    background: #4f46e5;
+}
+
+@media (max-width: 768px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .header h1 { font-size: 2.2rem; }
+}

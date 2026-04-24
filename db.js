@@ -225,6 +225,14 @@ async function initDatabase() {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_branch (branch)
         )`);
+        await db.execute(`CREATE TABLE IF NOT EXISTS bot_heartbeats (
+            shard_id INT PRIMARY KEY,
+            last_heartbeat TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            uptime_seconds BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            memory_usage_mb BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            guild_count INT UNSIGNED NOT NULL DEFAULT 0,
+            status VARCHAR(32) NOT NULL DEFAULT 'Online'
+        )`);
 
 
         // ─── GUILD STATS TABLES (for dashboard statistics) ─────────────────

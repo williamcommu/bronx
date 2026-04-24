@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: 'bronx &middot; servers', custom_css: ['/css/servers.css', '/css/update-banner.css', '/css/topnav.css?v=1.1'] }) %>
+<body>
+    <!-- Background Effects (matching index) -->
+    <div class="page-bg">
+        <canvas id="particleCanvas" class="particle-canvas"></canvas>
+        <div class="bg-gradient"></div>
+        <div class="bg-orb bg-orb--1"></div>
+        <div class="bg-orb bg-orb--2"></div>
+        <div class="bg-orb bg-orb--3"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-noise"></div>
+        <div class="bg-vignette"></div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Top Navigation -->
+    <header class="topnav">
+        <a href="https://bronxbot.xyz" class="topnav-brand">
+            <img src="https://bronxbot.xyz/assets/avatar.png" alt="bronx">
+            <span>bronx</span>
+            <span class="topnav-separator">/</span>
+            <span class="topnav-page">servers</span>
+        </a>
+        <div class="topnav-links">
+            <a href="https://status.bronxbot.xyz">status</a>
+            <div class="nav-dropdown">
+                <span class="nav-dropbtn">resources ▼</span>
+                <div class="nav-dropdown-bridge"></div>
+                <div class="nav-dropdown-content">
+                    <a href="https://docs.bronxbot.xyz">api docs</a>
+                    <a href="https://guide.bronxbot.xyz">user guide</a>
+                    <a href="/privacy">privacy</a>
+                </div>
+            </div>
+            <a href="/dashboard">dashboard</a>
+            <a href="https://bronxbot.xyz/invite" target="_blank" class="nav-invite-btn">invite</a>
+        </div>
+        <div class="topnav-right">
+            <div class="user-chip" id="user-chip" style="display: none;">
+                <img id="user-avatar" src="" alt="avatar" class="user-chip-avatar">
+                <span id="user-name" class="user-chip-name">Username</span>
+                <button id="logout-btn" class="user-chip-logout" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="servers-main">
+        <!-- Loading State -->
+        <div id="loading-state" class="loading-state">
+            <div class="spinner-lg"></div>
+            <p>loading your servers...</p>
+        </div>
+
+        <!-- Not Authenticated -->
+        <div id="login-state" class="login-state" style="display: none;">
+            <div class="login-card">
+                <div class="login-icon"><i class="fab fa-discord"></i></div>
+                <h1>welcome to bronx</h1>
+                <p>log in with discord to manage your servers</p>
+                <a href="/login" class="btn btn-discord">
+                    <i class="fab fa-discord"></i>
+                    <span>log in with discord</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Server List -->
+        <div id="servers-state" class="servers-state" style="display: none;">
+            <div class="servers-header">
+                <h1>your servers</h1>
+                <p>select a server to manage</p>
+            </div>
+            
+            <!-- Owner Dashboard Card (only visible to bot owner) -->
+            <div id="owner-card-wrap" class="owner-card-wrap" style="display: none;">
+                <a href="/owner" class="owner-card">
+                    <div class="owner-card-icon">
+                        <i class="fas fa-crown"></i>
+                    </div>
+                    <div class="owner-card-info">
+                        <span class="owner-card-title">owner dashboard</span>
+                        <span class="owner-card-desc">global settings, user management, ML config, blacklists</span>
+                    </div>
+                    <i class="fas fa-chevron-right owner-card-arrow"></i>
+                </a>
+            </div>
+
+            <!-- Search -->
+            <div class="servers-search-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" id="server-search" placeholder="search servers..." autocomplete="off" spellcheck="false">
+            </div>
+
+            <!-- Server Grid -->
+            <div class="server-grid" id="server-grid"></div>
+
+            <!-- No Servers -->
+            <div id="no-servers" class="no-servers" style="display: none;">
+                <i class="fas fa-server"></i>
+                <h3>no servers found</h3>
+                <p>bronx isn't in any servers you manage, or you don't have manage server permissions.</p>
+                <a href="https://discord.com/oauth2/authorize?client_id=828380019406929962&permissions=8&scope=bot%20applications.commands" 
+                   class="btn btn-outline" target="_blank">
+                    <i class="fas fa-plus"></i> invite bronx
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/servers.js"></script>
+    <script>
+    // Particle system (matching index)
+    (function() {
+        const canvas = document.getElementById('particleCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        class Particle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.speedY = (Math.random() - 0.5) * 0.3;
+                this.opacity = Math.random() * 0.5 + 0.1;
+                this.fadeSpeed = Math.random() * 0.008 + 0.002;
+                this.growing = Math.random() > 0.5;
+                const hue = 220 + Math.random() * 40;
+                this.color = `hsla(${hue}, 60%, 75%, `;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.growing) {
+                    this.opacity += this.fadeSpeed;
+                    if (this.opacity >= 0.6) this.growing = false;
+                } else {
+                    this.opacity -= this.fadeSpeed;
+                    if (this.opacity <= 0) this.reset();
+                }
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color + this.opacity.toFixed(3) + ')';
+                ctx.fill();
+            }
+        }
+        const count = window.innerWidth < 768 ? 40 : 80;
+        for (let i = 0; i < count; i++) particles.push(new Particle());
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 120) {
+                        const alpha = (1 - dist / 120) * 0.08;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = `rgba(180, 167, 214, ${alpha})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+    })();
+    </script>
+    <script src="/js/version-check.js"></script>
+</body>
+</html>

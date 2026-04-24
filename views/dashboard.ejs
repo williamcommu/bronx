@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: 'bronx &middot; dashboard', custom_css: ['/css/dashboard.css', '/css/update-banner.css', '/css/preview-banner.css'] }) %>
+<body>
+    <!-- Loading Splash Screen -->
+    <div id="loading-splash">
+        <!-- Background Effects (matching index) -->
+        <canvas id="splashParticleCanvas" class="particle-canvas"></canvas>
+        <div class="bg-gradient"></div>
+        <div class="bg-orb bg-orb--1"></div>
+        <div class="bg-orb bg-orb--2"></div>
+        <div class="bg-orb bg-orb--3"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-noise"></div>
+        <div class="bg-vignette"></div>
+        <div class="splash-content">
+            <div class="splash-brand-row">
+                <span class="splash-brand">bronx</span>
+                <span class="splash-beta-badge">beta</span>
+            </div>
+            <div class="splash-spinner"></div>
+            <p class="splash-message">loading your dashboard...</p>
+            <p class="splash-sub">this dashboard is currently in beta</p>
+            <div class="splash-links">
+                <a href="https://discord.gg/bronx" target="_blank" rel="noopener noreferrer" title="Discord">
+                    <i class="fab fa-discord"></i>
+                </a>
+                <a href="https://github.com/siqnole/bronx/tree/main" target="_blank" rel="noopener noreferrer" title="GitHub">
+                    <i class="fab fa-github"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Command Palette (Cmd+K) -->
+    <div class="cmd-palette-overlay" id="cmd-palette-overlay">
+        <div class="cmd-palette">
+            <div class="cmd-palette-input-wrap">
+                <i class="fas fa-search cmd-palette-icon"></i>
+                <input type="text" id="cmd-palette-input" placeholder="Search commands, settings, actions..." autocomplete="off" spellcheck="false">
+                <kbd class="cmd-palette-kbd">ESC</kbd>
+            </div>
+            <div class="cmd-palette-results" id="cmd-palette-results">
+                <div class="cmd-palette-group">
+                    <div class="cmd-palette-group-label">Navigation</div>
+                    <div class="cmd-palette-item" data-action="nav:overview"><i class="fas fa-chart-line"></i><div class="cmd-item-text"><span>Overview</span><small>Server stats, activity feed &amp; quick actions</small></div><kbd>G O</kbd></div>
+                    <div class="cmd-palette-item" data-action="nav:guild-settings"><i class="fas fa-cog"></i><div class="cmd-item-text"><span>Guild Settings</span><small>Custom prefix, welcome messages &amp; bot config</small></div><kbd>G S</kbd></div>
+                    <div class="cmd-palette-item" data-action="nav:commands"><i class="fas fa-terminal"></i><div class="cmd-item-text"><span>Commands &amp; Modules</span><small>Enable/disable commands &amp; set permissions</small></div><kbd>G C</kbd></div>
+                    <div class="cmd-palette-item" data-action="nav:reaction-roles"><i class="fas fa-smile"></i><div class="cmd-item-text"><span>Reaction Roles</span><small>Self-assignable roles via message reactions</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:autoroles"><i class="fas fa-user-plus"></i><div class="cmd-item-text"><span>Autoroles</span><small>Automatically assign roles when members join</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:economy"><i class="fas fa-coins"></i><div class="cmd-item-text"><span>Economy</span><small>Currency settings, daily rewards &amp; multipliers</small></div><kbd>G E</kbd></div>
+                    <div class="cmd-palette-item" data-action="nav:shop"><i class="fas fa-store"></i><div class="cmd-item-text"><span>Shop &amp; Marketplace</span><small>Create items members can buy with coins</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:fishing"><i class="fas fa-fish"></i><div class="cmd-item-text"><span>Fishing Stats</span><small>Fish catches, rare finds &amp; fishing leaderboard</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:giveaways"><i class="fas fa-gift"></i><div class="cmd-item-text"><span>Giveaways</span><small>Create &amp; manage server giveaways</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:moderation"><i class="fas fa-shield-alt"></i><div class="cmd-item-text"><span>Moderation</span><small>Auto-mod, banned words &amp; spam protection</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:mod-logs"><i class="fas fa-clipboard-list"></i><div class="cmd-item-text"><span>Mod Logs</span><small>View bans, kicks, warns &amp; mod actions</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:leaderboards"><i class="fas fa-trophy"></i><div class="cmd-item-text"><span>Leaderboards</span><small>XP, coins, messages &amp; activity rankings</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:statistics"><i class="fas fa-chart-bar"></i><div class="cmd-item-text"><span>Statistics</span><small>Server growth, engagement &amp; trends</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:activity"><i class="fas fa-users-cog"></i><div class="cmd-item-text"><span>Member Activity</span><small>Recent member joins, leaves &amp; actions</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:voice-analytics"><i class="fas fa-headset"></i><div class="cmd-item-text"><span>Voice Analytics</span><small>Voice channel usage &amp; time tracking</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:top-users"><i class="fas fa-medal"></i><div class="cmd-item-text"><span>Top 10 Users</span><small>Most active members by XP &amp; messages</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:heatmap"><i class="fas fa-fire-alt"></i><div class="cmd-item-text"><span>Activity Heatmap</span><small>Hourly/daily activity patterns visualization</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:user-profiles"><i class="fas fa-id-card"></i><div class="cmd-item-text"><span>User Profiles</span><small>Look up any member's stats &amp; history</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:channel-analytics"><i class="fas fa-project-diagram"></i><div class="cmd-item-text"><span>Channel Analytics</span><small>Message volume &amp; activity per channel</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:economy-analytics"><i class="fas fa-chart-pie"></i><div class="cmd-item-text"><span>Economy Analytics</span><small>Currency flow, top earners &amp; spending</small></div></div>
+                    <div class="cmd-palette-item" data-action="nav:gambling-analytics"><i class="fas fa-dice"></i><div class="cmd-item-text"><span>Gambling Analytics</span><small>Win rates, bets &amp; casino statistics</small></div></div>
+                </div>
+                <div class="cmd-palette-group">
+                    <div class="cmd-palette-group-label">Actions</div>
+                    <div class="cmd-palette-item" data-action="action:save"><i class="fas fa-save"></i><div class="cmd-item-text"><span>Save All Changes</span><small>Persist all pending configuration changes</small></div><kbd>Ctrl+S</kbd></div>
+                    <div class="cmd-palette-item" data-action="action:refresh"><i class="fas fa-sync-alt"></i><div class="cmd-item-text"><span>Refresh Data</span><small>Reload current page data from server</small></div><kbd>Ctrl+R</kbd></div>
+                </div>
+            </div>
+            <div class="cmd-palette-footer">
+                <span><kbd>&uarr;</kbd><kbd>&darr;</kbd> navigate</span>
+                <span><kbd>Enter</kbd> select</span>
+                <span><kbd>Esc</kbd> close</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Dashboard Shell -->
+    <div class="dashboard-shell">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-glass"></div>
+            
+            <!-- Sidebar Header -->
+            <div class="sidebar-header">
+                <a href="/servers" class="sidebar-brand">
+                    <span class="brand-text">bronx</span>
+                    <span class="brand-badge">dashboard</span>
+                </a>
+                <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" title="Toggle sidebar">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+
+            <!-- Auth Section -->
+            <div class="sidebar-auth" id="auth-section">
+                <!-- Logged in -->
+                <div id="user-info" class="auth-user">
+                    <div class="auth-user-avatar">
+                        <img id="user-avatar" src="" alt="avatar">
+                        <span class="auth-user-status"></span>
+                    </div>
+                    <div class="auth-user-info">
+                        <span class="auth-user-name" id="user-name">Username</span>
+                        <button id="logout-btn" class="auth-logout-btn">
+                            <i class="fas fa-sign-out-alt"></i> logout
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Server Identity -->
+                <div id="server-identity" class="server-identity" style="display: none;">
+                    <div class="server-identity-icon" id="server-identity-icon">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <span class="server-identity-name" id="server-identity-name">loading...</span>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="sidebar-nav">
+                <ul class="nav-list">
+                    <li class="nav-item active" data-tab="overview">
+                        <i class="fas fa-chart-line"></i>
+                        <span>overview</span>
+                    </li>
+                    
+                    <li class="nav-group">
+                        <div class="nav-group-header" data-collapse="config">
+                            <span class="nav-group-label">server config</span>
+                            <i class="fas fa-chevron-down nav-group-chevron"></i>
+                        </div>
+                        <ul class="nav-group-items" id="config-items">
+                            <li class="nav-item" data-tab="guild-settings">
+                                <i class="fas fa-cog"></i><span>settings</span>
+                            </li>
+                            <li class="nav-item" data-tab="commands">
+                                <i class="fas fa-terminal"></i><span>commands &amp; modules</span>
+                            </li>
+                            <li class="nav-item" data-tab="reaction-roles">
+                                <i class="fas fa-smile"></i><span>reaction roles</span>
+                            </li>
+                            <li class="nav-item" data-tab="autoroles">
+                                <i class="fas fa-user-plus"></i><span>autoroles</span>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-group">
+                        <div class="nav-group-header" data-collapse="economy-section">
+                            <span class="nav-group-label">economy</span>
+                            <i class="fas fa-chevron-down nav-group-chevron"></i>
+                        </div>
+                        <ul class="nav-group-items" id="economy-section-items">
+                            <li class="nav-item" data-tab="economy">
+                                <i class="fas fa-coins"></i><span>balance &amp; treasury</span>
+                            </li>
+                            <li class="nav-item" data-tab="shop">
+                                <i class="fas fa-store"></i><span>shop &amp; marketplace</span>
+                            </li>
+                            <li class="nav-item" data-tab="giveaways">
+                                <i class="fas fa-gift"></i><span>giveaways</span>
+                            </li>
+                            <li class="nav-item" data-tab="leaderboards">
+                                <i class="fas fa-trophy"></i><span>leaderboards</span>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-group">
+                        <div class="nav-group-header" data-collapse="mod-section">
+                            <span class="nav-group-label">moderation</span>
+                            <i class="fas fa-chevron-down nav-group-chevron"></i>
+                        </div>
+                        <ul class="nav-group-items" id="mod-section-items">
+                            <li class="nav-item" data-tab="moderation">
+                                <i class="fas fa-shield-alt"></i><span>mod tools</span>
+                            </li>
+                            <li class="nav-item" data-tab="mod-logs">
+                                <i class="fas fa-clipboard-list"></i><span>mod logs</span>
+                            </li>
+                            <li class="nav-item" data-tab="role-classes">
+                                <i class="fas fa-users-cog"></i><span>role classes</span>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-group">
+                        <div class="nav-group-header" data-collapse="stats-section">
+                            <span class="nav-group-label">statistics</span>
+                            <i class="fas fa-chevron-down nav-group-chevron"></i>
+                        </div>
+                        <ul class="nav-group-items" id="stats-section-items">
+                            <li class="nav-item" data-tab="statistics">
+                                <i class="fas fa-chart-bar"></i><span>command usage</span>
+                            </li>
+                            <li class="nav-item" data-tab="activity">
+                                <i class="fas fa-users-cog"></i><span>member activity</span>
+                            </li>
+                            <li class="nav-item" data-tab="top-users">
+                                <i class="fas fa-medal"></i><span>top 10 users</span>
+                            </li>
+                            <li class="nav-item" data-tab="heatmap">
+                                <i class="fas fa-fire-alt"></i><span>activity heatmap</span>
+                            </li>
+                            <li class="nav-item" data-tab="user-profiles">
+                                <i class="fas fa-id-card"></i><span>user profiles</span>
+                            </li>
+                            <li class="nav-item" data-tab="channel-analytics">
+                                <i class="fas fa-project-diagram"></i><span>channel analytics</span>
+                            </li>
+                            <li class="nav-item" data-tab="fishing">
+                                <i class="fas fa-fish"></i><span>fishing stats</span>
+                            </li>
+                            <li class="nav-item" data-tab="economy-analytics">
+                                <i class="fas fa-chart-area"></i><span>economy analytics</span>
+                            </li>
+                            <li class="nav-item" data-tab="gambling-analytics">
+                                <i class="fas fa-dice"></i><span>gambling analytics</span>
+                            </li>
+                            <li class="nav-item" data-tab="voice-analytics">
+                                <i class="fas fa-headset"></i><span>voice analytics</span>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <button class="sidebar-cmd-btn" id="open-cmd-palette">
+                    <i class="fas fa-search"></i>
+                    <span>search</span>
+                    <kbd>&#8984;K</kbd>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content">
+            <!-- Top Bar -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="topbar-menu-btn" id="mobile-menu-btn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="breadcrumbs" id="breadcrumbs">
+                        <span class="breadcrumb-item">dashboard</span>
+                        <i class="fas fa-chevron-right breadcrumb-sep"></i>
+                        <span class="breadcrumb-item active" id="breadcrumb-current">overview</span>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <div class="topbar-links">
+                        <a href="https://status.bronxbot.xyz" class="topbar-link">status</a>
+                        <div class="nav-dropdown">
+                            <span class="nav-dropbtn">resources ▼</span>
+                            <div class="nav-dropdown-bridge"></div>
+                            <div class="nav-dropdown-content">
+                                <a href="https://docs.bronxbot.xyz">api docs</a>
+                                <a href="https://guide.bronxbot.xyz">user guide</a>
+                                <a href="/privacy">privacy</a>
+                            </div>
+                        </div>
+                        <a href="https://bronxbot.xyz/invite" target="_blank" class="topbar-invite-btn">invite</a>
+                    </div>
+                    <div class="status-pills" id="realtime-status">
+                        <div class="status-pill" id="db-status" title="Database">
+                            <span class="status-dot"></span>
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <div class="status-pill" id="socket-status" title="Realtime">
+                            <span class="status-dot"></span>
+                            <i class="fas fa-wifi"></i>
+                        </div>
+                        <div class="status-pill status-pill--count">
+                            <span id="live-users-count" class="live-count">0</span>
+                            <span class="live-label">online</span>
+                        </div>
+                    </div>
+
+                    <div class="topbar-server" id="current-server">
+                        <a href="/servers" class="btn-back-servers" title="Back to servers">
+                            <i class="fas fa-arrow-left"></i>
+                        </a>
+                        <i class="fas fa-server"></i>
+                        <span id="current-server-name">loading...</span>
+                    </div>
+
+                    <button class="btn btn-primary btn-save" id="save-all" style="display: none;">
+                        <i class="fas fa-save"></i>
+                        <span>save changes</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content" id="page-content">
+
+                <!-- Overview Tab -->
+                <section id="overview" class="tab-content active">
+                    <div id="overview-content" class="overview-content">
+                        <div class="card-grid card-grid--4">
+                            <div class="stat-card"><div class="stat-card-icon stat-card-icon--purple"><i class="fas fa-users"></i></div><div class="stat-card-body"><span class="stat-card-label">members</span><span class="stat-number stat-card-value" data-animate>0</span><span class="stat-card-scope">this server</span></div></div>
+                            <div class="stat-card"><div class="stat-card-icon stat-card-icon--green"><i class="fas fa-coins"></i></div><div class="stat-card-body"><span class="stat-card-label">total economy</span><span class="stat-number stat-card-value" data-animate>$0</span><span class="stat-card-scope">this server</span></div></div>
+                            <div class="stat-card"><div class="stat-card-icon stat-card-icon--blue"><i class="fas fa-terminal"></i></div><div class="stat-card-body"><span class="stat-card-label">commands today</span><span class="stat-number stat-card-value" data-animate>0</span><span class="stat-card-scope">this server</span></div></div>
+                            <div class="stat-card"><div class="stat-card-icon stat-card-icon--cyan"><i class="fas fa-user-plus"></i></div><div class="stat-card-body"><span class="stat-card-label">new members today</span><span class="stat-number stat-card-value" data-animate>0</span><span class="stat-card-scope">this server</span></div></div>
+                        </div>
+
+                        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-chart-area"></i> 7-day overview</h3></div><div class="card-body"><div class="chart-container" style="height:280px;"><canvas id="overview-trend-chart"></canvas></div></div></div>
+
+                        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-stream"></i> recent activity</h3><span class="card-badge">live</span></div><div class="card-body"><div class="activity-list"><div class="activity-item activity-empty"><i class="fas fa-info-circle"></i><span>no recent activity in this server</span></div></div><div class="activity-see-more"><button onclick="dashboard.showActivityModal()"><i class="fas fa-chevron-down"></i> see more</button></div></div></div>
+                    </div>
+                </section>
+
+                <!-- Guild Settings Tab -->
+                <section id="guild-settings" class="tab-content">
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-sliders-h"></i> basic settings</h3></div><div class="card-body">
+                        <div class="form-field"><label for="guild-prefix">command prefix</label><input type="text" id="guild-prefix" value="bb " maxlength="10" class="input"><span class="form-hint">characters users type before commands</span></div>
+                        <div class="form-field form-field--inline"><label for="logging-enabled">enable logging</label><label class="switch"><input type="checkbox" id="logging-enabled"><span class="switch-slider"></span></label><span class="form-hint">log bot actions and command usage</span></div>
+                        <div class="form-field"><label for="logging-channel">logging channel</label><select id="logging-channel" class="input"><option value="">select channel...</option><option value="123456789">#bot-logs</option><option value="987654321">#admin-logs</option></select></div>
+                        <div class="form-field form-field--inline"><label for="public-stats-enabled">public statistics</label><label class="switch"><input type="checkbox" id="public-stats-enabled"><span class="switch-slider"></span></label><span class="form-hint">allow server members to view statistics &amp; leaderboards</span></div>
+                        <div class="form-field form-field--inline"><label for="global-stats-enabled">global discovery</label><label class="switch"><input type="checkbox" id="global-stats-enabled"><span class="switch-slider"></span></label><span id="global-discovery-status"></span></div>
+                        <span class="form-hint" style="margin-top:-0.5rem; margin-bottom: 1rem; display: block;">allow anyone to find and view stats in the global server list (requires owner approval)</span>
+                    </div></div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-ban"></i> blocked channels</h3></div><div class="card-body"><div class="item-list" id="blocked-channels-list"></div><button class="btn btn-outline" id="add-blocked-channel"><i class="fas fa-plus"></i> add channel</button></div></div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-hashtag"></i> custom prefixes</h3></div><div class="card-body"><div class="item-list" id="custom-prefixes"></div><div class="inline-form"><input type="text" id="new-prefix" placeholder="enter new prefix..." maxlength="50" class="input"><button class="btn btn-outline" id="add-prefix">add prefix</button></div></div></div>
+                </section>
+
+                <!-- Commands & Modules Tab -->
+                <section id="commands" class="tab-content">
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-cube"></i> modules</h3></div><div class="card-body">
+                        <div class="module-toggles">
+                            <div class="module-row"><div class="module-info"><i class="fas fa-coins module-icon"></i><span>Economy</span></div><div class="module-actions"><button class="btn btn-ghost btn-xs" onclick="dashboard.showExclusiveModal('economy', 'module')" title="Make Exclusive"><i class="fas fa-lock"></i></button><label class="switch"><input type="checkbox" data-module="economy" checked><span class="switch-slider"></span></label></div></div>
+                            <div class="module-row"><div class="module-info"><i class="fas fa-fish module-icon"></i><span>Fishing</span></div><div class="module-actions"><button class="btn btn-ghost btn-xs" onclick="dashboard.showExclusiveModal('fishing', 'module')" title="Make Exclusive"><i class="fas fa-lock"></i></button><label class="switch"><input type="checkbox" data-module="fishing" checked><span class="switch-slider"></span></label></div></div>
+                            <div class="module-row"><div class="module-info"><i class="fas fa-dice module-icon"></i><span>Gambling</span></div><div class="module-actions"><button class="btn btn-ghost btn-xs" onclick="dashboard.showExclusiveModal('gambling', 'module')" title="Make Exclusive"><i class="fas fa-lock"></i></button><label class="switch"><input type="checkbox" data-module="gambling" checked><span class="switch-slider"></span></label></div></div>
+                            <div class="module-row"><div class="module-info"><i class="fas fa-shield-alt module-icon"></i><span>Moderation</span></div><div class="module-actions"><button class="btn btn-ghost btn-xs" onclick="dashboard.showExclusiveModal('moderation', 'module')" title="Make Exclusive"><i class="fas fa-lock"></i></button><label class="switch"><input type="checkbox" data-module="moderation" checked><span class="switch-slider"></span></label></div></div>
+                            <div class="module-row"><div class="module-info"><i class="fas fa-laugh module-icon"></i><span>Fun</span></div><div class="module-actions"><button class="btn btn-ghost btn-xs" onclick="dashboard.showExclusiveModal('fun', 'module')" title="Make Exclusive"><i class="fas fa-lock"></i></button><label class="switch"><input type="checkbox" data-module="fun" checked><span class="switch-slider"></span></label></div></div>
+                            <div class="module-row"><div class="module-info"><i class="fas fa-tools module-icon"></i><span>Utility</span></div><div class="module-actions"><button class="btn btn-ghost btn-xs" onclick="dashboard.showExclusiveModal('utility', 'module')" title="Make Exclusive"><i class="fas fa-lock"></i></button><label class="switch"><input type="checkbox" data-module="utility" checked><span class="switch-slider"></span></label></div></div>
+                        </div>
+                    </div></div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-terminal"></i> commands</h3><div class="card-header-actions"><div class="search-input-wrap"><i class="fas fa-search"></i><input type="text" id="command-search" placeholder="search commands..." class="input input--sm"></div></div></div><div class="card-body"><div class="command-list" id="command-toggles"></div></div></div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-lock"></i> scope settings</h3></div><div class="card-body"><p class="text-muted">configure command permissions for specific channels, roles, or users</p><button class="btn btn-outline" id="add-scope-rule" style="margin-top:1rem;"><i class="fas fa-plus"></i> add scope rule</button><div class="scope-rules" id="scope-rules-list" style="margin-top:1rem;"></div></div></div>
+                </section>
+
+                <!-- Economy Tab -->
+                <section id="economy" class="tab-content">
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-search-dollar"></i> user economy overview</h3></div><div class="card-body"><div class="inline-form"><input type="text" id="user-search" placeholder="search users by ID or name..." class="input"><button class="btn btn-outline" id="search-user">search</button></div><div class="user-economy-result" id="user-economy-result"></div></div></div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-university"></i> guild balances</h3></div><div class="card-body"><div class="balance-grid"><div class="balance-card"><span class="balance-label">current balance</span><span class="balance-amount balance-amount--accent" id="guild-balance-val">$0</span></div><div class="balance-card"><span class="balance-label">total donated</span><span class="balance-amount" id="guild-donated-val">$0</span></div><div class="balance-card"><span class="balance-label">total given</span><span class="balance-amount" id="guild-given-val">$0</span></div></div></div></div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-percentage"></i> interest system</h3></div><div class="card-body"><div class="form-row"><div class="form-field"><label>default interest rate (%)</label><input type="number" id="default-interest-rate" value="1.00" step="0.01" min="0" max="100" class="input"></div><div class="form-field"><label>maximum interest level</label><input type="number" id="max-interest-level" value="10" min="0" max="50" class="input"></div></div></div></div>
+                </section>
+
+                <!-- Shop Tab (server market — visible only when server economy is enabled) -->
+                <section id="shop" class="tab-content">
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-store-alt"></i> server market items</h3><button class="btn btn-primary btn-sm" id="add-market-item"><i class="fas fa-plus"></i> add item</button></div><div class="card-body card-body--flush"><div class="data-table-wrap"><table class="data-table"><thead><tr><th>Item ID</th><th>Name</th><th>Type</th><th>Price</th><th>Stock</th><th class="text-right">Actions</th></tr></thead><tbody id="market-items-tbody"></tbody></table></div><p class="empty-hint" id="market-empty" style="display:none;padding:1.5rem;color:var(--fg-dim);text-align:center;"><i class="fas fa-box-open"></i> No market items yet. Add roles or channels for members to purchase.</p></div></div>
+                </section>
+
+                <!-- Fishing Tab -->
+                <section id="fishing" class="tab-content">
+                    <div class="card-header-actions" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;">
+                        <select id="fishing-range" class="input input--sm"><option value="7d">7 days</option><option value="14d">14 days</option><option value="30d">30 days</option></select>
+                        <button class="btn btn-outline btn-sm" id="refresh-fishing-stats"><i class="fas fa-sync-alt"></i></button>
+                        <button class="btn btn-outline btn-sm" onclick="window.open('/api/stats/export/fishing?range=' + (document.getElementById('fishing-range')?.value || '7d'), '_blank')"><i class="fas fa-download"></i> CSV</button>
+                    </div>
+                    <div class="card-grid card-grid--4">
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--blue"><i class="fas fa-water"></i></div><div class="stat-card-body"><span class="stat-card-label">total caught</span><span class="stat-number stat-card-value" id="fish-total-caught">0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--green"><i class="fas fa-dollar-sign"></i></div><div class="stat-card-body"><span class="stat-card-label">total value</span><span class="stat-number stat-card-value" id="fish-total-value">$0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--yellow"><i class="fas fa-users"></i></div><div class="stat-card-body"><span class="stat-card-label">unique fishers</span><span class="stat-number stat-card-value" id="fish-unique-fishers">0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--cyan"><i class="fas fa-fish"></i></div><div class="stat-card-body"><span class="stat-card-label">avg value/catch</span><span class="stat-number stat-card-value" id="fish-avg-value">$0</span></div></div>
+                    </div>
+                    <div class="card-grid card-grid--2">
+                        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-chart-line"></i> catch trend</h3></div><div class="card-body"><div class="chart-container"><canvas id="fishing-catch-trend-chart"></canvas></div></div></div>
+                        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-chart-pie"></i> rarity distribution</h3></div><div class="card-body"><div class="chart-container"><canvas id="fishing-rarity-chart"></canvas></div></div></div>
+                    </div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-trophy"></i> top fish caught</h3></div><div class="card-body card-body--flush"><div class="data-table-wrap"><table class="data-table"><thead><tr><th>Fish</th><th>Rarity</th><th>Max Value</th><th>Max Weight</th><th>Times Caught</th></tr></thead><tbody id="top-fish-tbody"></tbody></table></div></div></div>
+                </section>
+
+                <!-- Giveaways Tab -->
+                <section id="giveaways" class="tab-content">
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-gift"></i> create giveaway</h3></div><div class="card-body"><div class="form-row"><div class="form-field"><label>prize amount</label><input type="number" id="giveaway-prize" min="1" placeholder="enter amount..." class="input"></div><div class="form-field"><label>max winners</label><input type="number" id="giveaway-winners" min="1" value="1" class="input"></div></div><div class="form-row"><div class="form-field"><label>duration (hours)</label><input type="number" id="giveaway-duration" min="1" value="24" class="input"></div><div class="form-field"><label>channel</label><select id="giveaway-channel" class="input"><option value="">select channel...</option></select></div></div><button class="btn btn-primary" id="create-giveaway" style="margin-top:1rem;"><i class="fas fa-rocket"></i> launch giveaway</button></div></div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-bolt"></i> active giveaways</h3><span class="card-badge">live</span></div><div class="card-body"><div class="item-list" id="active-giveaways"></div></div></div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-history"></i> history</h3></div><div class="card-body"><button class="btn btn-outline" id="load-giveaway-history"><i class="fas fa-clock"></i> load history</button><div class="item-list" id="giveaway-history-list" style="margin-top:1rem;"></div></div></div>
+                </section>
+
+                <!-- Moderation Tab -->
+                <section id="moderation" class="tab-content">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-gavel"></i> infractions</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="infraction-filters" style="display:flex;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center;">
+                                <select id="infraction-type-filter" class="form-input" style="width:auto;">
+                                    <option value="">all types</option>
+                                    <option value="warn">warn</option>
+                                    <option value="timeout">timeout</option>
+                                    <option value="mute">mute</option>
+                                    <option value="jail">jail</option>
+                                    <option value="kick">kick</option>
+                                    <option value="ban">ban</option>
+                                </select>
+                                <input type="text" id="infraction-user-filter" class="form-input" placeholder="user id" style="width:160px;">
+                                <label class="toggle-label" style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;">
+                                    <input type="checkbox" id="infraction-active-filter" checked> active only
+                                </label>
+                                <button class="btn btn-primary btn-sm" id="filter-infractions-btn"><i class="fas fa-filter"></i> filter</button>
+                            </div>
+                            <div class="card-body--flush">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>case</th><th>user</th><th>type</th><th>points</th><th>date</th><th>status</th><th class="text-right">actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="infractions-tbody"></tbody>
+                                </table>
+                            </div>
+                            <div id="infractions-pagination" class="pagination-controls" style="margin-top:0.75rem;"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-sliders-h"></i> infraction settings</h3>
+                            <button class="btn btn-primary btn-sm" id="save-infraction-config"><i class="fas fa-save"></i> save</button>
+                        </div>
+                        <div class="card-body" id="infraction-config-body">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-robot"></i> auto-moderation</h3>
+                            <button class="btn btn-primary btn-sm" id="save-automod-config"><i class="fas fa-save"></i> save</button>
+                        </div>
+                        <div class="card-body" id="automod-config-body">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-clock"></i> cooldown management</h3></div><div class="card-body card-body--flush"><div class="data-table-wrap"><table class="data-table"><thead><tr><th>Command</th><th>Cooldown</th><th class="text-right">Actions</th></tr></thead><tbody id="cooldown-settings-tbody"></tbody></table></div></div></div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-broom"></i> autopurge</h3><button class="btn btn-primary btn-sm" id="add-autopurge"><i class="fas fa-plus"></i> add schedule</button></div><div class="card-body"><div class="item-list" id="autopurge-list"></div></div></div>
+                </section>
+
+                <!-- Reaction Roles Tab -->
+                <section id="reaction-roles" class="tab-content">
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-smile"></i> add reaction role</h3></div><div class="card-body">
+                        <div class="form-row">
+                            <div class="form-field"><label>message ID</label><input type="text" id="rr-message-id" placeholder="enter message ID..." class="input"></div>
+                            <div class="form-field"><label>channel</label>
+                                <div class="searchable-select" data-type="channel" data-field="rr-channel-id">
+                                    <input type="text" class="input searchable-input" placeholder="Select channel...">
+                                    <input type="hidden" id="rr-channel-id">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-field"><label>emoji</label><input type="text" id="rr-emoji" placeholder="enter emoji..." class="input"></div>
+                            <div class="form-field"><label>role</label>
+                                <div class="searchable-select" data-type="role" data-field="rr-role-id">
+                                    <input type="text" class="input searchable-input" placeholder="Select role...">
+                                    <input type="hidden" id="rr-role-id">
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" id="add-reaction-role" style="margin-top:1rem;"><i class="fas fa-plus"></i> add reaction role</button>
+                    </div></div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-list"></i> active reaction roles</h3></div><div class="card-body"><div class="item-list" id="reaction-roles-list"></div></div></div>
+                </section>
+
+                <!-- Autoroles Tab -->
+                <section id="autoroles" class="tab-content">
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-user-plus"></i> add autorole</h3></div><div class="card-body">
+                        <p style="color:var(--fg-dim);margin-bottom:1rem;">Autoroles are automatically assigned to new members when they join the server.</p>
+                        <div class="form-row">
+                            <div class="form-field" style="flex:1;">
+                                <label>role</label>
+                                <div class="searchable-select" data-type="role" data-field="autorole-role-id">
+                                    <input type="text" class="input searchable-input" placeholder="Search for a role...">
+                                    <input type="hidden" id="autorole-role-id">
+                                </div>
+                            </div>
+                            <div class="form-field" style="flex:0 0 auto;align-self:flex-end;">
+                                <button class="btn btn-primary" id="add-autorole"><i class="fas fa-plus"></i> add autorole</button>
+                            </div>
+                        </div>
+                    </div></div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-list"></i> active autoroles</h3></div><div class="card-body"><div class="item-list" id="autoroles-list"></div></div></div>
+                </section>
+
+                <!-- Statistics Tab -->
+                <section id="statistics" class="tab-content">
+                    <div class="tab-toolbar">
+                        <div class="time-range-toggle" data-target="statistics">
+                            <button class="range-pill" data-range="today">today</button>
+                            <button class="range-pill active" data-range="7d">7d</button>
+                            <button class="range-pill" data-range="14d">14d</button>
+                            <button class="range-pill" data-range="30d">30d</button>
+                        </div>
+                        <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="window.open('/api/stats/export/commands?range=' + (document.querySelector('[data-target=statistics] .range-pill.active')?.dataset.range || '7d'), '_blank')"><i class="fas fa-download"></i> CSV</button>
+                    </div>
+
+                    <div class="card-grid card-grid--4" id="stats-summary-cards">
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--purple"><i class="fas fa-terminal"></i></div><div class="stat-card-body"><span class="stat-card-label">commands run</span><span class="stat-card-value" id="stats-commands-run">0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--green"><i class="fas fa-comment-dots"></i></div><div class="stat-card-body"><span class="stat-card-label">messages seen</span><span class="stat-card-value" id="stats-messages-seen">0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--cyan"><i class="fas fa-user-check"></i></div><div class="stat-card-body"><span class="stat-card-label">active users</span><span class="stat-card-value" id="stats-active-users">0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--yellow"><i class="fas fa-star"></i></div><div class="stat-card-body"><span class="stat-card-label">top command</span><span class="stat-card-value" id="stats-top-command">—</span></div></div>
+                    </div>
+
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-chart-line"></i> command usage trend</h3></div><div class="card-body"><div class="chart-container"><canvas id="command-trend-chart"></canvas></div></div></div>
+
+                    <div class="card-grid card-grid--2">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="fas fa-list-ol"></i> top commands</h3>
+                                <div class="card-header-actions">
+                                    <div class="search-input-wrap"><i class="fas fa-search"></i><input type="text" id="stats-cmd-search" placeholder="filter commands..." class="input input--sm"></div>
+                                </div>
+                            </div>
+                            <div class="card-body card-body--flush">
+                                <div class="data-table-wrap"><table class="data-table"><thead><tr><th style="width:3rem">#</th><th>command</th><th>uses</th><th>% of total</th></tr></thead><tbody id="top-commands-tbody"></tbody></table></div>
+                                <p class="empty-hint" id="top-commands-empty" style="display:none;padding:1.5rem;color:var(--fg-dim);text-align:center;"><i class="fas fa-terminal"></i> no command data yet</p>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="fas fa-hashtag"></i> commands by channel</h3>
+                                <div class="card-header-actions">
+                                    <select id="stats-channel-filter" class="input input--sm"><option value="">all channels</option></select>
+                                </div>
+                            </div>
+                            <div class="card-body card-body--flush">
+                                <div class="data-table-wrap"><table class="data-table"><thead><tr><th>channel</th><th>command</th><th>uses</th></tr></thead><tbody id="cmd-by-channel-tbody"></tbody></table></div>
+                                <p class="empty-hint" id="cmd-by-channel-empty" style="display:none;padding:1.5rem;color:var(--fg-dim);text-align:center;"><i class="fas fa-hashtag"></i> no channel data yet</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-chart-pie"></i> command breakdown</h3></div><div class="card-body"><div class="chart-container"><canvas id="command-usage-chart"></canvas></div></div></div>
+                </section>
+
+                <!-- Leaderboards Tab -->
+                <section id="leaderboards" class="tab-content">
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-trophy"></i> server leaderboards</h3><div class="card-header-actions"><button class="btn btn-outline btn-sm" id="lb-prev" title="Previous page"><i class="fas fa-chevron-left"></i></button><span id="lb-page" style="font-size:0.8rem;color:var(--fg-dim);margin:0 0.5rem;">1</span><button class="btn btn-outline btn-sm" id="lb-next" title="Next page"><i class="fas fa-chevron-right"></i></button><select id="leaderboard-type" class="input input--sm" style="margin-left:0.5rem;"><option value="xp">XP</option><option value="level">Level</option><option value="coins">Coins</option><option value="messages">Messages</option><option value="fishing">Fishing</option><option value="gambling">Gambling</option></select><button class="btn btn-outline btn-sm" id="refresh-leaderboard"><i class="fas fa-sync-alt"></i> refresh</button></div></div><div class="card-body card-body--flush"><div class="data-table-wrap" id="leaderboard-data"><table class="data-table"><thead><tr><th>Rank</th><th>User</th><th>Value</th></tr></thead><tbody id="leaderboard-body"></tbody></table></div></div></div>
+                </section>
+
+                <!-- Role Classes Tab -->
+                <section id="role-classes" class="tab-content">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-users-cog"></i> role classes</h3>
+                            <button class="btn btn-primary btn-sm" id="create-role-class"><i class="fas fa-plus"></i> create class</button>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-dim" style="margin-bottom:1rem;font-size:0.82rem;">define classes, assign roles to them, and control which commands each class can use.</p>
+                            <div class="item-list" id="role-classes-list">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Mod Logs Tab -->
+                <section id="mod-logs" class="tab-content">
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-clipboard-list"></i> moderation logs</h3><div class="card-header-actions"><select id="mod-log-action" class="input input--sm"><option value="">All Actions</option><option value="warn">Warns</option><option value="kick">Kicks</option><option value="ban">Bans</option><option value="mute">Mutes</option><option value="timeout">Timeouts</option></select><input type="text" id="mod-log-user" placeholder="User ID..." class="input input--sm"><button class="btn btn-outline btn-sm" id="filter-mod-logs"><i class="fas fa-filter"></i> filter</button></div></div><div class="card-body"><div class="mod-logs-list" id="mod-logs-data"></div></div></div>
+                    <div class="card-grid card-grid--3">
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--yellow"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-card-body"><span class="stat-card-label">total warns</span><span class="stat-card-value" id="total-warns">0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--red"><i class="fas fa-gavel"></i></div><div class="stat-card-body"><span class="stat-card-label">total bans</span><span class="stat-card-value" id="total-bans">0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--purple"><i class="fas fa-hourglass-half"></i></div><div class="stat-card-body"><span class="stat-card-label">total timeouts</span><span class="stat-card-value" id="total-timeouts">0</span></div></div>
+                    </div>
+                </section>
+
+                <!-- Activity Tab -->
+                <section id="activity" class="tab-content">
+                    <div class="tab-toolbar">
+                        <div class="time-range-toggle" data-target="activity">
+                            <button class="range-pill" data-range="today">today</button>
+                            <button class="range-pill active" data-range="7d">7d</button>
+                            <button class="range-pill" data-range="14d">14d</button>
+                            <button class="range-pill" data-range="30d">30d</button>
+                        </div>
+                        <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="window.open('/api/stats/export/activity?range=' + (document.querySelector('[data-target=activity] .range-pill.active')?.dataset.range || '7d'), '_blank')"><i class="fas fa-download"></i> CSV</button>
+                    </div>
+
+                    <div class="card-grid card-grid--4">
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--purple"><i class="fas fa-user-clock"></i></div><div class="stat-card-body"><span class="stat-card-label">daily active</span><span class="stat-card-value" id="daily-active-users">0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--blue"><i class="fas fa-comments"></i></div><div class="stat-card-body"><span class="stat-card-label">messages today</span><span class="stat-card-value" id="messages-today">0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--green"><i class="fas fa-user-plus"></i></div><div class="stat-card-body"><span class="stat-card-label">new members (7d)</span><span class="stat-card-value" id="new-members-week">0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--cyan"><i class="fas fa-terminal"></i></div><div class="stat-card-body"><span class="stat-card-label">commands today</span><span class="stat-card-value" id="commands-today">0</span></div></div>
+                    </div>
+
+                    <div class="card-grid card-grid--2">
+                        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-envelope"></i> messages / day</h3></div><div class="card-body"><div class="chart-container"><canvas id="activity-messages-chart"></canvas></div></div></div>
+                        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-user-friends"></i> member growth</h3></div><div class="card-body"><div class="chart-container"><canvas id="activity-members-chart"></canvas></div></div></div>
+                    </div>
+
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-users"></i> active users / day</h3></div><div class="card-body"><div class="chart-container"><canvas id="activity-users-chart"></canvas></div></div></div>
+                </section>
+
+                <!-- Economy Analytics Tab -->
+                <section id="economy-analytics" class="tab-content">
+                    <div class="card-header-actions" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;">
+                        <button class="btn btn-outline btn-sm" id="refresh-economy-analytics"><i class="fas fa-sync-alt"></i> refresh</button>
+                        <button class="btn btn-outline btn-sm" onclick="window.open('/api/stats/export/economy', '_blank')"><i class="fas fa-download"></i> CSV</button>
+                    </div>
+                    <div class="card-grid card-grid--4">
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--green"><i class="fas fa-coins"></i></div><div class="stat-card-body"><span class="stat-card-label">total wealth</span><span class="stat-number stat-card-value" id="econ-total-wealth">$0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--blue"><i class="fas fa-wallet"></i></div><div class="stat-card-body"><span class="stat-card-label">in wallets</span><span class="stat-number stat-card-value" id="econ-wallet-total">$0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--purple"><i class="fas fa-university"></i></div><div class="stat-card-body"><span class="stat-card-label">in banks</span><span class="stat-number stat-card-value" id="econ-bank-total">$0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--yellow"><i class="fas fa-percentage"></i></div><div class="stat-card-body"><span class="stat-card-label">wallet/bank ratio</span><span class="stat-card-value" id="econ-ratio">—</span></div></div>
+                    </div>
+                    <div class="card-grid card-grid--2">
+                        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-chart-bar"></i> wealth distribution</h3></div><div class="card-body"><div class="chart-container"><canvas id="wealth-distribution-chart"></canvas></div></div></div>
+                        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-dice"></i> gambling overview</h3></div><div class="card-body">
+                            <div class="card-grid card-grid--3" style="margin-bottom:1rem;">
+                                <div class="stat-card stat-card--mini"><div class="stat-card-body"><span class="stat-card-label">total wagered</span><span class="stat-number stat-card-value" id="gamble-total-wagered">$0</span></div></div>
+                                <div class="stat-card stat-card--mini"><div class="stat-card-body"><span class="stat-card-label">total won</span><span class="stat-number stat-card-value" id="gamble-total-won">$0</span></div></div>
+                                <div class="stat-card stat-card--mini"><div class="stat-card-body"><span class="stat-card-label">house edge</span><span class="stat-card-value" id="gamble-house-edge">—</span></div></div>
+                            </div>
+                            <div class="data-table-wrap"><table class="data-table"><thead><tr><th>Game</th><th>Players</th><th>Won</th><th>Lost</th><th>Biggest Win</th></tr></thead><tbody id="gambling-breakdown-tbody"></tbody></table></div>
+                        </div></div>
+                    </div>
+                </section>
+
+                <!-- Voice Analytics Tab -->
+                <section id="voice-analytics" class="tab-content">
+                    <div class="tab-toolbar">
+                        <div class="time-range-toggle" data-target="voice-analytics">
+                            <button class="range-pill" data-range="today">today</button>
+                            <button class="range-pill active" data-range="7d">7d</button>
+                            <button class="range-pill" data-range="14d">14d</button>
+                            <button class="range-pill" data-range="30d">30d</button>
+                        </div>
+                        <button class="btn btn-outline btn-sm" id="refresh-voice-analytics" style="margin-left:auto;"><i class="fas fa-sync-alt"></i> refresh</button>
+                    </div>
+
+                    <!-- Summary Cards -->
+                    <div class="card-grid card-grid--4">
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--purple"><i class="fas fa-headset"></i></div><div class="stat-card-body"><span class="stat-card-label">total sessions</span><span class="stat-number stat-card-value" id="voice-total-sessions">0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--green"><i class="fas fa-users"></i></div><div class="stat-card-body"><span class="stat-card-label">unique users</span><span class="stat-number stat-card-value" id="voice-unique-users">0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--blue"><i class="fas fa-clock"></i></div><div class="stat-card-body"><span class="stat-card-label">total time</span><span class="stat-card-value" id="voice-total-time">0m</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--cyan"><i class="fas fa-stopwatch"></i></div><div class="stat-card-body"><span class="stat-card-label">avg session</span><span class="stat-card-value" id="voice-avg-session">0m</span></div></div>
+                    </div>
+
+                    <!-- Daily Activity Chart + Peak Hours -->
+                    <div class="card-grid card-grid--2">
+                        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-chart-line"></i> daily voice activity</h3></div><div class="card-body"><div class="chart-container"><canvas id="voice-daily-chart"></canvas></div></div></div>
+                        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-chart-bar"></i> peak hours</h3></div><div class="card-body"><div class="chart-container"><canvas id="voice-peak-hours-chart"></canvas></div></div></div>
+                    </div>
+
+                    <!-- Top Channels + Top Users side-by-side -->
+                    <div class="card-grid card-grid--2">
+                        <div class="card">
+                            <div class="card-header"><h3 class="card-title"><i class="fas fa-hashtag"></i> top voice channels</h3></div>
+                            <div class="card-body card-body--flush">
+                                <div class="data-table-wrap"><table class="data-table"><thead><tr><th style="width:3rem">#</th><th>channel</th><th>sessions</th><th>users</th><th>total time</th></tr></thead><tbody id="voice-top-channels-tbody"></tbody></table></div>
+                                <p class="empty-hint" id="voice-channels-empty" style="display:none;padding:1.5rem;color:var(--fg-dim);text-align:center;"><i class="fas fa-volume-mute"></i> no voice channel data yet</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h3 class="card-title"><i class="fas fa-trophy"></i> top voice users</h3></div>
+                            <div class="card-body card-body--flush">
+                                <div class="data-table-wrap"><table class="data-table"><thead><tr><th style="width:3rem">#</th><th>user</th><th>sessions</th><th>channels</th><th>total time</th></tr></thead><tbody id="voice-top-users-tbody"></tbody></table></div>
+                                <p class="empty-hint" id="voice-users-empty" style="display:none;padding:1.5rem;color:var(--fg-dim);text-align:center;"><i class="fas fa-user-slash"></i> no voice user data yet</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Sessions -->
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title"><i class="fas fa-history"></i> recent voice sessions</h3></div>
+                        <div class="card-body card-body--flush">
+                            <div class="data-table-wrap"><table class="data-table"><thead><tr><th>user</th><th>channel</th><th>joined</th><th>duration</th></tr></thead><tbody id="voice-recent-tbody"></tbody></table></div>
+                            <p class="empty-hint" id="voice-recent-empty" style="display:none;padding:1.5rem;color:var(--fg-dim);text-align:center;"><i class="fas fa-history"></i> no recent sessions</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Gambling Analytics Tab (detailed) -->
+
+                <!-- Top 10 Users Tab -->
+                <section id="top-users" class="tab-content">
+                    <div class="tab-toolbar">
+                        <div class="time-range-toggle" data-target="top-users">
+                            <button class="range-pill" data-range="today">today</button>
+                            <button class="range-pill active" data-range="7d">7d</button>
+                            <button class="range-pill" data-range="14d">14d</button>
+                            <button class="range-pill" data-range="30d">30d</button>
+                        </div>
+                        <button class="btn btn-outline btn-sm" id="refresh-top-users" style="margin-left:auto;"><i class="fas fa-sync-alt"></i> refresh</button>
+                    </div>
+                    <div class="card-grid card-grid--2">
+                        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-chart-pie"></i> message distribution</h3><div class="card-header-actions"><div class="chart-type-toggle" data-canvas="top-users-msg-chart"><button class="chart-type-btn active" data-type="pie" title="Pie"><i class="fas fa-chart-pie"></i></button><button class="chart-type-btn" data-type="bar" title="Bar"><i class="fas fa-chart-bar"></i></button></div></div></div><div class="card-body"><div class="chart-container"><canvas id="top-users-msg-chart"></canvas></div></div></div>
+                        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-chart-pie"></i> voice distribution</h3><div class="card-header-actions"><div class="chart-type-toggle" data-canvas="top-users-vc-chart"><button class="chart-type-btn active" data-type="pie" title="Pie"><i class="fas fa-chart-pie"></i></button><button class="chart-type-btn" data-type="bar" title="Bar"><i class="fas fa-chart-bar"></i></button></div></div></div><div class="card-body"><div class="chart-container"><canvas id="top-users-vc-chart"></canvas></div></div></div>
+                    </div>
+                    <div class="card-grid card-grid--3">
+                        <div class="card">
+                            <div class="card-header"><h3 class="card-title"><i class="fas fa-comment-dots"></i> top messages</h3></div>
+                            <div class="card-body card-body--flush">
+                                <div class="data-table-wrap"><table class="data-table"><thead><tr><th style="width:3rem">#</th><th>user</th><th>messages</th></tr></thead><tbody id="top-messages-tbody"></tbody></table></div>
+                                <p class="empty-hint" id="top-messages-empty" style="display:none;padding:1.5rem;color:var(--fg-dim);text-align:center;"><i class="fas fa-comment-slash"></i> no message data yet</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h3 class="card-title"><i class="fas fa-headset"></i> top VC hours</h3></div>
+                            <div class="card-body card-body--flush">
+                                <div class="data-table-wrap"><table class="data-table"><thead><tr><th style="width:3rem">#</th><th>user</th><th>time</th></tr></thead><tbody id="top-vc-tbody"></tbody></table></div>
+                                <p class="empty-hint" id="top-vc-empty" style="display:none;padding:1.5rem;color:var(--fg-dim);text-align:center;"><i class="fas fa-volume-mute"></i> no voice data yet</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h3 class="card-title"><i class="fas fa-terminal"></i> top commands</h3></div>
+                            <div class="card-body card-body--flush">
+                                <div class="data-table-wrap"><table class="data-table"><thead><tr><th style="width:3rem">#</th><th>user</th><th>commands</th></tr></thead><tbody id="top-cmds-tbody"></tbody></table></div>
+                                <p class="empty-hint" id="top-cmds-empty" style="display:none;padding:1.5rem;color:var(--fg-dim);text-align:center;"><i class="fas fa-terminal"></i> no command data yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Activity Heatmap Tab -->
+                <section id="heatmap" class="tab-content">
+                    <div class="tab-toolbar">
+                        <div class="time-range-toggle" data-target="heatmap">
+                            <button class="range-pill active" data-range="7d">7d</button>
+                            <button class="range-pill" data-range="14d">14d</button>
+                            <button class="range-pill" data-range="30d">30d</button>
+                        </div>
+                        <button class="btn btn-outline btn-sm" id="refresh-heatmap" style="margin-left:auto;"><i class="fas fa-sync-alt"></i> refresh</button>
+                    </div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-fire-alt"></i> message activity — hour × day of week</h3></div><div class="card-body"><div class="chart-container" style="height:320px;"><canvas id="heatmap-chart"></canvas></div></div></div>
+                </section>
+
+                <!-- User Profiles Tab -->
+                <section id="user-profiles" class="tab-content">
+                    <div class="tab-toolbar">
+                        <div class="inline-form" style="gap:0.5rem;">
+                            <input type="text" id="profile-user-search" placeholder="enter user ID..." class="input input--sm" style="width:220px;">
+                            <button class="btn btn-primary btn-sm" id="load-user-profile"><i class="fas fa-search"></i> load profile</button>
+                        </div>
+                        <div class="time-range-toggle" data-target="user-profiles" style="margin-left:auto;">
+                            <button class="range-pill" data-range="today">today</button>
+                            <button class="range-pill active" data-range="7d">7d</button>
+                            <button class="range-pill" data-range="14d">14d</button>
+                            <button class="range-pill" data-range="30d">30d</button>
+                        </div>
+                    </div>
+                    <div id="user-profile-content" style="display:none;">
+                        <div class="card-grid card-grid--3">
+                            <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--purple"><i class="fas fa-comment-dots"></i></div><div class="stat-card-body"><span class="stat-card-label">messages</span><span class="stat-card-value" id="profile-messages">0</span></div></div>
+                            <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--blue"><i class="fas fa-headset"></i></div><div class="stat-card-body"><span class="stat-card-label">voice time</span><span class="stat-card-value" id="profile-voice">0m</span></div></div>
+                            <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--green"><i class="fas fa-terminal"></i></div><div class="stat-card-body"><span class="stat-card-label">commands</span><span class="stat-card-value" id="profile-commands">0</span></div></div>
+                        </div>
+                        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-chart-line"></i> daily activity</h3><div class="card-header-actions"><div class="chart-type-toggle" data-canvas="profile-daily-chart"><button class="chart-type-btn active" data-type="line" title="Line"><i class="fas fa-chart-line"></i></button><button class="chart-type-btn" data-type="bar" title="Bar"><i class="fas fa-chart-bar"></i></button></div></div></div><div class="card-body"><div class="chart-container"><canvas id="profile-daily-chart"></canvas></div></div></div>
+                    </div>
+                    <div id="user-profile-empty" class="card" style="text-align:center;padding:3rem;">
+                        <i class="fas fa-id-card" style="font-size:2rem;color:var(--fg-dim);margin-bottom:1rem;display:block;"></i>
+                        <p style="color:var(--fg-dim);">enter a user ID above and click <strong>load profile</strong> to view their stats</p>
+                    </div>
+                </section>
+
+                <!-- Channel Analytics Tab -->
+                <section id="channel-analytics" class="tab-content">
+                    <div class="tab-toolbar">
+                        <div class="time-range-toggle" data-target="channel-analytics">
+                            <button class="range-pill" data-range="today">today</button>
+                            <button class="range-pill active" data-range="7d">7d</button>
+                            <button class="range-pill" data-range="14d">14d</button>
+                            <button class="range-pill" data-range="30d">30d</button>
+                        </div>
+                        <button class="btn btn-outline btn-sm" id="refresh-channel-analytics" style="margin-left:auto;"><i class="fas fa-sync-alt"></i> refresh</button>
+                    </div>
+                    <div class="card-grid card-grid--2">
+                        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-chart-pie"></i> message share by channel</h3><div class="card-header-actions"><div class="chart-type-toggle" data-canvas="channel-pie-chart"><button class="chart-type-btn active" data-type="pie" title="Pie"><i class="fas fa-chart-pie"></i></button><button class="chart-type-btn" data-type="bar" title="Bar"><i class="fas fa-chart-bar"></i></button></div></div></div><div class="card-body"><div class="chart-container"><canvas id="channel-pie-chart"></canvas></div></div></div>
+                        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-chart-bar"></i> messages vs edits vs deletes</h3></div><div class="card-body"><div class="chart-container"><canvas id="channel-stacked-chart"></canvas></div></div></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title"><i class="fas fa-table"></i> channel breakdown</h3></div>
+                        <div class="card-body card-body--flush">
+                            <div class="data-table-wrap"><table class="data-table"><thead><tr><th style="width:3rem">#</th><th>channel</th><th>messages</th><th>edits</th><th>deletes</th><th>unique users</th></tr></thead><tbody id="channel-analytics-tbody"></tbody></table></div>
+                            <p class="empty-hint" id="channel-analytics-empty" style="display:none;padding:1.5rem;color:var(--fg-dim);text-align:center;"><i class="fas fa-hashtag"></i> no channel data yet</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Gambling Analytics Tab (detailed) -->
+                <section id="gambling-analytics" class="tab-content">
+                    <div class="card-grid card-grid--3">
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--red"><i class="fas fa-dice-d20"></i></div><div class="stat-card-body"><span class="stat-card-label">total bets</span><span class="stat-number stat-card-value" id="gamble-total-bets">0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--green"><i class="fas fa-hand-holding-usd"></i></div><div class="stat-card-body"><span class="stat-card-label">biggest win</span><span class="stat-number stat-card-value" id="gamble-biggest-win">$0</span></div></div>
+                        <div class="stat-card stat-card--mini"><div class="stat-card-icon stat-card-icon--yellow"><i class="fas fa-users"></i></div><div class="stat-card-body"><span class="stat-card-label">gamblers</span><span class="stat-number stat-card-value" id="gamble-unique-players">0</span></div></div>
+                    </div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-chart-bar"></i> profit/loss by game</h3></div><div class="card-body"><div class="chart-container"><canvas id="gambling-pnl-chart"></canvas></div></div></div>
+                    <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-table"></i> per-game breakdown</h3></div><div class="card-body card-body--flush"><div class="data-table-wrap"><table class="data-table"><thead><tr><th>Game</th><th>Unique Players</th><th>Total Won</th><th>Total Lost</th><th>Net P&amp;L</th><th>Biggest Win</th></tr></thead><tbody id="gambling-detail-tbody"></tbody></table></div></div></div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal System -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal" id="generic-modal">
+            <div class="modal-header">
+                <h3 id="modal-title">Modal Title</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" id="modal-cancel">cancel</button>
+                <button class="btn btn-primary" id="modal-confirm">confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="/js/dashboard.js"></script>
+    <script>
+    // Splash particle system (matching index)
+    (function() {
+        const canvas = document.getElementById('splashParticleCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let running = true;
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        class Particle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.speedY = (Math.random() - 0.5) * 0.3;
+                this.opacity = Math.random() * 0.5 + 0.1;
+                this.fadeSpeed = Math.random() * 0.008 + 0.002;
+                this.growing = Math.random() > 0.5;
+                const hue = 220 + Math.random() * 40;
+                this.color = `hsla(${hue}, 60%, 75%, `;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.growing) {
+                    this.opacity += this.fadeSpeed;
+                    if (this.opacity >= 0.6) this.growing = false;
+                } else {
+                    this.opacity -= this.fadeSpeed;
+                    if (this.opacity <= 0) this.reset();
+                }
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color + this.opacity.toFixed(3) + ')';
+                ctx.fill();
+            }
+        }
+        const count = window.innerWidth < 768 ? 40 : 80;
+        for (let i = 0; i < count; i++) particles.push(new Particle());
+        function animate() {
+            if (!running) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 120) {
+                        const alpha = (1 - dist / 120) * 0.08;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = `rgba(180, 167, 214, ${alpha})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+        // Stop animation when splash hides
+        const observer = new MutationObserver(() => {
+            const splash = document.getElementById('loading-splash');
+            if (splash && splash.classList.contains('hidden')) {
+                running = false;
+                observer.disconnect();
+            }
+        });
+        const splash = document.getElementById('loading-splash');
+        if (splash) observer.observe(splash, { attributes: true, attributeFilter: ['class'] });
+    })();
+    </script>
+    <script src="/js/version-check.js"></script>
+    <script src="/js/preview-banner.js"></script>
+</body>
+</html>

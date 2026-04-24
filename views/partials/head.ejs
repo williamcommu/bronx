@@ -1,0 +1,85 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%- locals.title || 'bronx | discord economy, gambling & mining bot' %></title>
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" href="/assets/avatar.png">
+    <link rel="apple-touch-icon" href="/assets/avatar.png">
+
+    <!-- Google Analytics (gtag.js) -->
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+
+        // Default consent mode (denied until user accepts)
+        gtag('consent', 'default', {
+            'analytics_storage': 'denied'
+        });
+    </script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-QKVTVN4PCX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-QKVTVN4PCX');
+    </script>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description"
+        content="elevate your discord server with bronx, a high-performance c++ bot featuring a deep economy system, immersive gambling, fishing, mining, and advanced moderation tools.">
+    <meta name="keywords"
+        content="discord economy bot, gambling bot, fishing bot, mining bot, bronx bot, c++ discord bot, discord utilities, moderation bot, level system discord">
+    <meta name="author" content="bronx">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://bronxbot.xyz">
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="bronx">
+    <meta property="og:description"
+        content="immersive economy, gambling, fishing, and mining for your discord server. built for performance and stability.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://bronxbot.xyz">
+    <meta property="og:image" content="https://bronxbot.xyz/assets/avatar.png">
+    <meta property="og:site_name" content="bronx">
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="bronx | discord economy bot">
+    <meta name="twitter:description"
+        content="the ultimate economy and gambling experience on discord. fast, stable, and feature-rich.">
+    <meta name="twitter:image" content="https://bronxbot.xyz/assets/avatar.png">
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "bronx",
+      "operatingSystem": "all",
+      "applicationCategory": "gameapplication, utilityapplication",
+      "description": "a high-performance discord bot featuring economy, gambling, mining, and moderation systems.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "usd"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "150"
+      }
+    }
+    </script>
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#050505">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/legacy_theme.css">
+    <% if (locals.custom_css) { %>
+        <% locals.custom_css.forEach(function(cssFile) { %>
+            <link rel="stylesheet" href="<%= cssFile %>">
+        <% }); %>
+    <% } %>
+</head>

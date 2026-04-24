@@ -838,20 +838,3 @@ function initFloatingNav() {
         lastScroll = currentScroll;
     }, { passive: true });
 }
-
-// ═══════════════════════════════════════════════════════════════════
-//  MOUSE PARALLAX EFFECT
-// ═══════════════════════════════════════════════════════════════════
-(function initMouseParallax() {
-    const heroBg = document.querySelector('.hero-bg');
-    if (!heroBg) return;
-
-    window.addEventListener('mousemove', (e) => {
-        const x = e.clientX / window.innerWidth;
-        const y = e.clientY / window.innerHeight;
-        
-        // Smoothly update variables
-        heroBg.style.setProperty('--mouse-x', x.toFixed(3));
-        heroBg.style.setProperty('--mouse-y', y.toFixed(3));
-    }, { passive: true });
-})();

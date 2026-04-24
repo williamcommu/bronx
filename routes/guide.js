@@ -5,7 +5,7 @@ const router = express.Router();
 
 // Serve guide page
 router.get('/guide', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'html/guide.html'));
+    res.render('guide', { pageName: 'guide' });
 });
 
 // Guide API - serves guide content as JSON (mirrors guide_data.h)

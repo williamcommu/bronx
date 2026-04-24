@@ -1,0 +1,186 @@
+<%- include('partials/head', { title: 'API Documentation | bronx Discord Bot', custom_css: ['/css/style.css', '/css/topnav.css', '/css/privacy.css', '/css/consent.css', '/css/update-banner.css'] }) %>
+<body style="font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;">
+    <%- include('partials/ambient_bg') %>
+    <%- include('partials/navbar', { pageName: 'docs' }) %>
+    <div class="privacy-layout" style="position: relative; z-index: 1;">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-inner">
+                <div class="sidebar-header"><span class="sidebar-label">topics</span></div>
+                <nav class="sidebar-nav" id="sidebar-nav">
+                    <a href="#intro" class="sidebar-link" data-target="intro">introduction</a>
+                    <a href="#auth" class="sidebar-link" data-target="auth">authentication</a>
+                    <a href="#public" class="sidebar-link" data-target="public">public endpoints</a>
+                    <a href="#dashboard" class="sidebar-link" data-target="dashboard">dashboard api</a>
+                    <a href="#bot" class="sidebar-link" data-target="bot">bot metadata</a>
+                    <a href="#errors" class="sidebar-link" data-target="errors">error codes</a>
+                </nav>
+            </div>
+        </aside>
+
+        <main class="privacy-content">
+            <header class="privacy-header">
+                <div class="privacy-breadcrumb">
+                    <a href="https://bronxbot.xyz">home</a>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    <span>api documentation</span>
+                </div>
+                <h1>api documentation</h1>
+                <p class="intro">
+                    the bronx api allows you to programmatically access statistics, economy data, and bot 
+                    metadata. our api follows rest principles and returns json responses.
+                </p>
+            </header>
+
+            <section id="intro" class="privacy-section">
+                <h2><span class="section-number">1.</span> introduction</h2>
+                <p>
+                    the api is divided into public endpoints (accessible by anyone) and authenticated 
+                    endpoints (requiring a discord session). all requests should be made to <code>https://api.bronxbot.xyz/</code>.
+                </p>
+            </section>
+
+            <section id="auth" class="privacy-section">
+                <h2><span class="section-number">2.</span> authentication</h2>
+                <p>
+                    authentication is handled via discord oauth2. when you log into the bronx dashboard, 
+                    a session cookie is established. this cookie must be present in the headers for all 
+                    non-public requests.
+                </p>
+                <div class="info-card info-card--accent">
+                    <div class="info-card-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </div>
+                    <div>
+                        <div class="info-card-title">csrf protection</div>
+                        <p>
+                            for state-changing requests (post, patch, delete), you must provide a 
+                            <code>x-csrf-token</code> header. you can fetch the current token from 
+                            <code>https://api.bronxbot.xyz/csrf-token</code>.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="public" class="privacy-section">
+                <h2><span class="section-number">3.</span> public endpoints</h2>
+                
+                <div class="api-card">
+                    <div class="api-header">
+                        <span class="method method--get">get</span>
+                        <span class="path">/health</span>
+                        <span class="public-badge">public</span>
+                    </div>
+                    <p>check the status of the bot, database, and cache systems.</p>
+                    <div class="code-block">
+{
+  "status": "healthy",
+  "database": "connected",
+  "cache": "redis",
+  "timestamp": "2026-04-16T15:00:00Z"
+}</div>
+                </div>
+
+                <div class="api-card">
+                    <div class="api-header">
+                        <span class="method method--get">get</span>
+                        <span class="path">/leaderboard/global</span>
+                        <span class="public-badge">public</span>
+                    </div>
+                    <p>fetch the global top 100 players by economy balance.</p>
+                </div>
+            </section>
+
+            <section id="#dashboard" class="privacy-section">
+                <h2><span class="section-number">4.</span> dashboard api</h2>
+                
+                <div class="api-card">
+                    <div class="api-header">
+                        <span class="method method--get">get</span>
+                        <span class="path">/auth/user</span>
+                        <span class="public-badge">public/auth</span>
+                    </div>
+                    <p>returns the current authenticated user's discord profile.</p>
+                </div>
+
+                <div class="api-card">
+                    <div class="api-header">
+                        <span class="method method--get">get</span>
+                        <span class="path">/guilds</span>
+                        <span class="auth-badge">authenticated</span>
+                    </div>
+                    <p>returns a list of discord servers where both the user is an administrator and the bot is present.</p>
+                </div>
+            </section>
+
+            <section id="bot" class="privacy-section">
+                <h2><span class="section-number">5.</span> bot metadata</h2>
+
+                <div class="api-card">
+                    <div class="api-header">
+                        <span class="method method--get">get</span>
+                        <span class="path">/guide</span>
+                        <span class="public-badge">public</span>
+                    </div>
+                    <p>returns categorical documentation for all available bot commands.</p>
+                </div>
+
+                <div class="api-card">
+                    <div class="api-header">
+                        <span class="method method--get">get</span>
+                        <span class="path">/bot/log</span>
+                        <span class="public-badge">public</span>
+                    </div>
+                    <p>returns recent public bot events (guild joins, major updates).</p>
+                </div>
+            </section>
+
+    </div>
+
+    <%- include('partials/footer') %>
+
+    <!-- ── Privacy Consent Banner ────────────────────────── -->
+    <%- include('partials/consent') %>
+    <script src="/js/version-check.js"></script>
+    <script>
+    (() => {
+        const sidebarNav = document.getElementById('sidebar-nav');
+        const links = sidebarNav.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.privacy-section');
+        let activeId = null;
+
+        const observerOpts = { rootMargin: '-80px 0px -60% 0px', threshold: 0 };
+        const visibleSections = new Set();
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) visibleSections.add(entry.target.id);
+                else visibleSections.delete(entry.target.id);
+            });
+            const sectionIds = Array.from(sections).map(s => s.id);
+            let topVisible = null;
+            for (const id of sectionIds) { if (visibleSections.has(id)) { topVisible = id; break; } }
+            if (topVisible && topVisible !== activeId) setActive(topVisible);
+        }, observerOpts);
+
+        sections.forEach(s => observer.observe(s));
+
+        function setActive(id) {
+            activeId = id;
+            links.forEach(link => { link.classList.toggle('active', link.dataset.target === id); });
+        }
+
+        links.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.dataset.target;
+                const target = document.getElementById(targetId);
+                if (target) {
+                    window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - 90, behavior: 'smooth' });
+                    setActive(targetId);
+                }
+            });
+        });
+    })();
+    </script>
+</body>
+</html>

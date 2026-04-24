@@ -1,0 +1,260 @@
+/* Font selection updated to system stack per user request */
+
+:root {
+    --bg-black: #050505;
+    --bg-deep: #08080c;
+    --bg-card: rgba(255, 255, 255, 0.02);
+    --bg-glass: rgba(255, 255, 255, 0.03);
+    
+    --accent: #c084fc; /* Vibrant Purple */
+    --accent-secondary: #0ea5e9; /* Deep Blue */
+    --accent-glow: rgba(192, 132, 252, 0.3);
+    
+    --fg: #f8fafc;
+    --fg-muted: #94a3b8;
+    --fg-dim: #64748b;
+    
+    --border: rgba(255, 255, 255, 0.08);
+    --border-light: rgba(255, 255, 255, 0.12);
+    
+    /* Legacy Override Mapping */
+    --bg: var(--bg-black);
+    --bg-raised: var(--bg-deep);
+    --bg-raised-2: #0c0c12;
+    --accent-hover: #d8b4fe;
+    --transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif !important;
+    background-color: var(--bg-black) !important;
+    color: var(--fg) !important;
+    margin: 0;
+}
+
+/* Premium Branding */
+.brand-text {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+    font-weight: 800 !important;
+    letter-spacing: -0.04em;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Glass Cards */
+.card, .server-card, .sidebar, .topnav, .panel-card, .module-card {
+    background: rgba(255, 255, 255, 0.02) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px !important;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.server-card:hover, .card:hover {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border-color: var(--border-light) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Premium Buttons */
+.btn-primary, .btn-discord, #loginBtn {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    padding: 10px 24px !important;
+    box-shadow: 0 4px 15px rgba(192, 132, 252, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-primary:hover, .btn-discord:hover, #loginBtn:hover {
+    transform: translateY(-2px) !important;
+    filter: brightness(1.1) !important;
+    box-shadow: 0 8px 25px rgba(192, 132, 252, 0.4) !important;
+}
+
+/* Page Background Fix */
+.page-bg {
+    background: var(--bg-black) !important;
+}
+
+.bg-gradient {
+    background: 
+        radial-gradient(circle at 10% 20%, rgba(192, 132, 252, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(14, 165, 233, 0.05) 0%, transparent 40%) !important;
+}
+
+/* Universal Navbar/TopBar Style */
+.topnav, .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem !important;
+    height: 60px !important;
+    background: rgba(5, 5, 5, 0.5) !important;
+    backdrop-filter: blur(25px) !important;
+    -webkit-backdrop-filter: blur(25px) !important;
+    border-bottom: 1px solid var(--border) !important;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.topnav-brand, .sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none !important;
+}
+
+.topnav-brand img, .sidebar-brand img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+.topnav-brand span:first-of-type, .brand-text {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif !important;
+    font-weight: 800 !important;
+    font-size: 1.4rem !important;
+    letter-spacing: -0.04em !important;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+}
+
+.topnav-separator, .breadcrumb-sep {
+    color: rgba(255, 255, 255, 0.15) !important;
+    font-weight: 200 !important;
+    font-size: 1.1rem !important;
+}
+
+.topnav-page, .breadcrumb-item {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif !important;
+    color: var(--fg-muted) !important;
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.02em !important;
+}
+
+.topnav-links, .topbar-links {
+    display: flex;
+    align-items: center;
+    gap: 1.8rem !important;
+}
+
+.topnav-links a, .topbar-link, .nav-link {
+    color: var(--fg-muted) !important;
+    text-decoration: none !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    transition: all 0.3s var(--transition) !important;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif !important;
+}
+
+.topnav-links a:hover, .topbar-link:hover, .nav-link:hover {
+    color: var(--fg) !important;
+}
+
+/* Premium Invite/Dashboard Button */
+.nav-invite-btn, .navbar-btn, .topbar-invite-btn {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%) !important;
+    color: white !important;
+    padding: 0.5rem 1.4rem !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+    box-shadow: 0 4px 15px rgba(192, 132, 252, 0.2) !important;
+    transition: all 0.3s var(--transition) !important;
+    text-decoration: none !important;
+    border: none !important;
+}
+
+.nav-invite-btn:hover, .navbar-btn:hover, .topbar-invite-btn:hover {
+    transform: translateY(-2px) !important;
+    filter: brightness(1.1) !important;
+    box-shadow: 0 8px 20px rgba(192, 132, 252, 0.4) !important;
+}
+
+/* User Chips */
+.user-chip, .auth-user {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem !important;
+    padding: 0.35rem 0.8rem 0.35rem 0.35rem !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 100px !important;
+}
+
+.user-chip-avatar img, .auth-user-avatar img {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+}
+
+/* Dropdown Menus */
+.nav-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.nav-dropbtn {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.nav-dropdown-content {
+    display: none;
+    position: absolute;
+    background: rgba(10, 10, 12, 0.95) !important;
+    backdrop-filter: blur(25px) !important;
+    border: 1px solid var(--border) !important;
+    min-width: 180px;
+    z-index: 2000;
+    border-radius: 12px !important;
+    top: 100%;
+    right: 0;
+    padding: 0.6rem !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6) !important;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: transform 0.3s var(--transition), opacity 0.3s var(--transition);
+}
+
+.nav-dropdown:hover .nav-dropdown-content {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.nav-dropdown-content a {
+    color: var(--fg-muted) !important;
+    padding: 0.7rem 1rem !important;
+    text-decoration: none !important;
+    display: block !important;
+    font-size: 0.85rem !important;
+    border-radius: 8px !important;
+    transition: all 0.2s !important;
+}
+
+.nav-dropdown-content a:hover {
+    color: var(--fg) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    transform: translateX(3px) !important;
+}
+
+.nav-dropdown-bridge {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    height: 10px;
+}

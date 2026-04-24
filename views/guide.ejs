@@ -1,0 +1,220 @@
+<%- include('partials/head', { title: 'master guide | bronx discord bot', custom_css: ['/css/style.css', '/css/topnav.css', '/css/guide.css', '/css/consent.css', '/css/update-banner.css'] }) %>
+<body>
+    <%- include('partials/ambient_bg') %>
+    <%- include('partials/navbar', { pageName: 'guide' }) %>
+    <div class="container" style="position: relative; z-index: 1;">
+        <aside class="sidebar">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="search the guide...">
+            </div>
+
+            <nav id="nav-sections">
+                <div class="loading">loading guide...</div>
+            </nav>
+        </aside>
+        <main class="main" id="main-content">
+            <div class="loading">loading...</div>
+        </main>
+    </div>
+
+    <%- include('partials/footer') %>
+
+    <script>
+        // Guide data will be embedded here or fetched from API
+        let guideData = null;
+        let currentSection = 0;
+        let currentPage = 0;
+
+        // Fetch guide data from API
+        async function loadGuide() {
+            try {
+                const response = await fetch('/api/guide');
+                guideData = await response.json();
+                renderNavigation();
+                showSection(0, 0);
+            } catch (error) {
+                console.error('Failed to load guide:', error);
+                document.getElementById('nav-sections').innerHTML = 
+                    '<p style="color: var(--text-muted); padding: 1rem;">failed to load guide data</p>';
+            }
+        }
+
+        // Render navigation sidebar
+        function renderNavigation() {
+            const nav = document.getElementById('nav-sections');
+            let html = '';
+
+            // Group by category
+            const categories = {
+                'basics': { title: 'Getting Started', sections: [] },
+                'economy': { title: 'Economy & Earning', sections: [] },
+                'activities': { title: 'Activities', sections: [] },
+                'progression': { title: 'Progression', sections: [] },
+                'server': { title: 'Server Management', sections: [] }
+            };
+
+            guideData.sections.forEach((section, idx) => {
+                const cat = categorize(section.name);
+                categories[cat].sections.push({ ...section, idx });
+            });
+
+            for (const [key, cat] of Object.entries(categories)) {
+                if (cat.sections.length === 0) continue;
+                html += `<div class="nav-section">
+                    <div class="nav-section-title">${cat.title}</div>`;
+                for (const section of cat.sections) {
+                    html += `<a class="nav-item" data-section="${section.idx}" onclick="showSection(${section.idx}, 0)">
+                        <span class="emoji">${section.emoji}</span>
+                        <span class="label">${section.name}</span>
+                        <span class="badge">${section.pages.length}p</span>
+                    </a>`;
+                }
+                html += '</div>';
+            }
+
+            nav.innerHTML = html;
+        }
+
+        // Categorize sections
+        function categorize(name) {
+            const n = name.toLowerCase();
+            if (n.includes('getting started') || n.includes('advanced tips')) return 'basics';
+            if (n.includes('economy') || n.includes('passive') || n.includes('gambling')) return 'economy';
+            if (n.includes('fishing') || n.includes('mining') || n.includes('crafting') || n.includes('pet')) return 'activities';
+            if (n.includes('level') || n.includes('skill') || n.includes('achievement') || n.includes('challenge') || n.includes('mastery')) return 'progression';
+            if (n.includes('setup') || n.includes('moderation') || n.includes('command') || n.includes('tuning') || n.includes('anticheat')) return 'server';
+            return 'basics';
+        }
+
+        // Show a section/page
+        function showSection(sectionIdx, pageIdx) {
+            currentSection = sectionIdx;
+            currentPage = pageIdx;
+
+            const section = guideData.sections[sectionIdx];
+            const page = section.pages[pageIdx];
+
+            // Update active nav item
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const activeNav = document.querySelector(`.nav-item[data-section="${sectionIdx}"]`);
+            if (activeNav) activeNav.classList.add('active');
+
+            // Render content
+            const content = formatContent(page.content);
+            const totalPages = section.pages.length;
+
+            document.getElementById('main-content').innerHTML = `
+                <div class="content-header">
+                    <span class="emoji">${section.emoji}</span>
+                    <h2>${section.name}</h2>
+                    <span class="description">${section.description}</span>
+                </div>
+                <div class="content-body">
+                    <div class="page-content">
+                        <h3>${page.title}</h3>
+                        <div>${content}</div>
+                    </div>
+                    ${totalPages > 1 ? `
+                        <div class="pagination">
+                            <button onclick="prevPage()" ${pageIdx === 0 ? 'disabled' : ''}>
+                                ◀ Previous
+                            </button>
+                            <span class="page-indicator">${pageIdx + 1} / ${totalPages}</span>
+                            <button onclick="nextPage()" ${pageIdx === totalPages - 1 ? 'disabled' : ''}>
+                                Next ▶
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // Format markdown-like content to HTML
+        function formatContent(text) {
+            return text
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/`(.+?)`/g, '<code>$1</code>')
+                .replace(/\n/g, '<br>')
+                .replace(/^- /gm, '• ');
+        }
+
+        // Page navigation
+        function prevPage() {
+            if (currentPage > 0) {
+                showSection(currentSection, currentPage - 1);
+            }
+        }
+
+        function nextPage() {
+            const section = guideData.sections[currentSection];
+            if (currentPage < section.pages.length - 1) {
+                showSection(currentSection, currentPage + 1);
+            }
+        }
+
+        // Search functionality
+        document.getElementById('search-input').addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase().trim();
+            if (query.length < 2) {
+                showSection(currentSection, currentPage);
+                return;
+            }
+
+            const results = [];
+            guideData.sections.forEach((section, sectionIdx) => {
+                section.pages.forEach((page, pageIdx) => {
+                    const content = page.content.toLowerCase();
+                    if (content.includes(query) || page.title.toLowerCase().includes(query)) {
+                        // Find context around match
+                        const idx = content.indexOf(query);
+                        const start = Math.max(0, idx - 40);
+                        const end = Math.min(content.length, idx + query.length + 40);
+                        let context = '...' + page.content.substring(start, end) + '...';
+                        
+                        results.push({
+                            sectionIdx,
+                            pageIdx,
+                            sectionName: section.name,
+                            pageTitle: page.title,
+                            emoji: section.emoji,
+                            context
+                        });
+                    }
+                });
+            });
+
+            if (results.length === 0) {
+                document.getElementById('main-content').innerHTML = `
+                    <div class="search-results">
+                        <h3>No results for "${query}"</h3>
+                        <p style="color: var(--text-muted)">try different keywords</p>
+                    </div>`;
+                return;
+            }
+
+            let html = `<div class="search-results">
+                <h3>Search results for "${query}"</h3>`;
+            
+            results.slice(0, 10).forEach(r => {
+                const highlighted = r.context.replace(
+                    new RegExp(`(${query})`, 'gi'),
+                    '<mark>$1</mark>'
+                );
+                html += `<div class="search-result-item" onclick="showSection(${r.sectionIdx}, ${r.pageIdx}); document.getElementById('search-input').value = '';">
+                    <h4>${r.emoji} ${r.sectionName} → ${r.pageTitle}</h4>
+                    <div class="context">${highlighted}</div>
+                </div>`;
+            });
+
+            html += '</div>';
+            document.getElementById('main-content').innerHTML = html;
+        });
+
+        // Initialize
+        loadGuide();
+    </script>
+    <!-- Privacy Consent Banner -->
+    <%- include('partials/consent') %>
+    <script src="/js/version-check.js"></script>
+</body>
+</html>
